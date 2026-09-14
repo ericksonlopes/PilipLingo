@@ -285,3 +285,40 @@ export interface CreateConversationInput {
   topic?: string | null;
   goal?: string | null;
 }
+
+// ---------- tradução avançada ----------
+
+export interface TranslationChunk {
+  text: string;
+  /** Papel gramatical em inglês, ex.: "Present Perfect", "Subject". */
+  role: string;
+  /** Explicação do bloco em português. */
+  explanation: string;
+}
+
+export interface GrammarCorrection {
+  /** Fragmento exatamente como o usuário escreveu (errado). */
+  original: string;
+  /** Forma correta. */
+  corrected: string;
+  /** Explicação em português de por que está errado. */
+  explanation: string;
+}
+
+export interface TranslationResult {
+  original: string;
+  translation: string;
+  /** A frase sempre em inglês (base dos chunks), independente da direção. */
+  english_phrase: string;
+  /** A frase sempre em português. */
+  portuguese_phrase: string;
+  /** Correções gramaticais/ortográficas — lista vazia se a entrada estava correta ou era PT. */
+  corrections: GrammarCorrection[];
+  chunks: TranslationChunk[];
+  /** 1–3 frases em português explicando como os blocos formam o sentido. */
+  assembly_summary: string;
+}
+
+export interface TranslateInput {
+  text: string;
+}

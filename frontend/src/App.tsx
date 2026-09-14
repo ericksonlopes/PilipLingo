@@ -7,6 +7,7 @@ import AuthPage from "./pages/AuthPage";
 import ChatPage from "./pages/ChatPage";
 import HistoryPage from "./pages/HistoryPage";
 import StudyPage from "./pages/StudyPage";
+import TranslatePage from "./pages/TranslatePage";
 import { useAuth } from "./hooks/useAuth";
 import { useLevel } from "./hooks/useLevel";
 import type { AuthUser } from "./lib/types";
@@ -76,6 +77,7 @@ function AuthenticatedApp({ user, onLogout }: AuthenticatedAppProps) {
           <Route path="/" element={<StudyPage level={level} />} />
           <Route path="/historico" element={<HistoryPage level={level} />} />
           <Route path="/chat" element={<ChatPage level={level} />} />
+          <Route path="/traduzir" element={<TranslatePage />} />
           <Route path="/frases" element={<Navigate to="/" replace />} />
           <Route path="/praticar" element={<Navigate to="/" replace />} />
           <Route path="/vocabulario" element={<Navigate to="/" replace />} />

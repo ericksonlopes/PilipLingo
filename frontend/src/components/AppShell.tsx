@@ -11,11 +11,12 @@ interface AppShellProps {
   onLogout?: () => void;
 }
 
-// Três abas: estudar, historico e chat.
+// Três abas: estudar, historico, chat e traduzir.
 const TABS = [
   { to: "/", label: "Estudar", icon: "sparkle" },
   { to: "/historico", label: "Historico", icon: "history" },
   { to: "/chat", label: "Chat", icon: "chat" },
+  { to: "/traduzir", label: "Traduzir", icon: "translate" },
 ] as const;
 
 type IconName = (typeof TABS)[number]["icon"];
@@ -115,6 +116,29 @@ function TabIcon({ name }: { name: IconName }) {
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path
           d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "translate") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M3 5h12M9 3v2M7 19l4-8 4 8M8.5 16h5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <path
+          d="M14 5l7 7-2 2M17 12l-3 3"
           stroke="currentColor"
           strokeWidth="1.8"
           strokeLinecap="round"

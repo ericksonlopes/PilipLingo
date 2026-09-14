@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { isExactAnswer } from "../../lib/answers";
+import { isCloseAnswer, isExactAnswer } from "../../lib/answers";
 import type { StudyExercise } from "../../lib/types";
 import AudioButton from "./AudioButton";
 
@@ -18,6 +18,7 @@ export default function TypingCloze({ exercise, isResolved, onResolve }: TypingC
   const [hintsUsed, setHintsUsed] = useState(0);
   const [before, after] = splitPrompt(exercise.prompt);
   const wasCorrect = hintsUsed === 0 && isExactAnswer(value, exercise.answer);
+  const wasClose = !wasCorrect && isCloseAnswer(value, exercise.answer);
 
   function check() {
     if (!isResolved && value.trim()) {
@@ -68,6 +69,12 @@ export default function TypingCloze({ exercise, isResolved, onResolve }: TypingC
           <p className={wasCorrect ? "feedback feedback--ok" : "feedback feedback--bad"}>
             {wasCorrect ? "Isso mesmo." : `Era "${exercise.answer}".`}
           </p>
+          {!wasCorrect && wasClose && (
+            <p className="feedback feedback--close">
+              Quase! Você digitou <strong lang="en">"{value.trim()}"</strong>, a resposta era{" "}
+              <strong lang="en">"{exercise.answer}"</strong>.
+            </p>
+          )}
           <AudioButton text={exercise.card.sentence} label="Ouvir a frase" />
         </div>
       ) : (

@@ -7,6 +7,7 @@ adaptadores. Nenhuma implementacao concreta e referenciada aqui.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 
@@ -17,6 +18,36 @@ from modules.vocabulary.domain.entities import (
 )
 from modules.vocabulary.domain.study import StudyCard
 from shared.domain.proficiency import ProficiencyLevel
+
+
+# ---------- value objects usados pelas portas ----------
+
+@dataclass(frozen=True, slots=True)
+class TranslationChunk:
+    """Um bloco gramatical retornado pelo adaptador de traducao."""
+    text: str
+    role: str
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
+class TranslationCorrection:
+    """Um erro gramatical/ortografico encontrado na entrada em ingles."""
+    original: str     # fragmento errado exatamente como o usuario escreveu
+    corrected: str    # forma correta
+    explanation: str  # explicacao em portugues de por que esta errado
+
+
+@dataclass(frozen=True, slots=True)
+class PhraseTranslationResult:
+    """Resultado bruto devolvido pelo adaptador PhraseTranslator."""
+    original: str
+    translation: str
+    english_phrase: str
+    portuguese_phrase: str
+    corrections: list[TranslationCorrection]
+    chunks: list[TranslationChunk]
+    assembly_summary: str
 
 
 class VocabularyRepository(ABC):
@@ -77,6 +108,14 @@ class WordTranslator(ABC):
 
         Termos que falharem na traducao sao omitidos do resultado.
         """
+
+
+class PhraseTranslator(ABC):
+    """Porta de traducao avancada de frases com analise estrutural (blocos + resumo)."""
+
+    @abstractmethod
+    async def translate(self, text: str) -> PhraseTranslationResult:
+        """Traduz a frase e devolve blocos gramaticais com explicacoes."""
 
 
 class StudyCardRepository(ABC):

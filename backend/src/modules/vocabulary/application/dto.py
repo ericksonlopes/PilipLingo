@@ -116,3 +116,39 @@ class StudyHistoryPage:
     words_total: int
     limit: int
     offset: int
+
+
+# ---------- traducao avancada ----------
+
+@dataclass(frozen=True, slots=True)
+class TranslationChunkItem:
+    """Um bloco da frase com seu papel gramatical e explicacao."""
+    text: str
+    role: str
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
+class TranslationCommand:
+    """Comando para traduzir uma frase com analise estrutural."""
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class TranslationCorrectionItem:
+    """Um erro gramatical/ortografico encontrado na entrada em ingles."""
+    original: str
+    corrected: str
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
+class TranslationResult:
+    """Resultado da traducao avancada com analise de blocos."""
+    original: str
+    translation: str
+    english_phrase: str
+    portuguese_phrase: str
+    corrections: list[TranslationCorrectionItem]
+    chunks: list[TranslationChunkItem]
+    assembly_summary: str

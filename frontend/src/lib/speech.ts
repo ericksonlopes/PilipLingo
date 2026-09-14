@@ -169,6 +169,47 @@ function settleSpeech(speech: ActiveSpeech, result: SpeechResult, notifyIdle = t
 }
 
 /**
+ * Fala um texto em qualquer idioma e informa como a reproducao terminou.
+ * Substitui a fala ativa, em vez de enfileirar.
+ *
+ * `lang` segue o formato BCP-47: "en-US", "pt-BR", etc.
+ */
+export function speakLang(text: string, lang: string, rate = 1): Promise<SpeechResult> {
+  if (!isSpeechSupported() || !text.trim()) {
+    return Promise.resolve("unsupported");
+  }
+
+  pauseIdleWaiters();
+  if (activeSpeech !== null) {
+    const replaced = activeSpeech;
+    settleSpeech(replaced, "cancelled", false);
+    window.speechSynthesis.cancel();
+  } else {
+    window.speechSynthesis.cancel();
+  }
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang;
+  utterance.rate = rate;
+
+  return new Promise<SpeechResult>((resolve) => {
+    const speech: ActiveSpeech = { utterance, resolve, watchdog: 0 };
+    speech.watchdog = window.setTimeout(() => {
+      window.speechSynthesis.cancel();
+      settleSpeech(speech, "error");
+    }, Math.max(5_000, Math.min(30_000, text.length * 250)));
+    activeSpeech = speech;
+    utterance.onend = () => settleSpeech(speech, "ended");
+    utterance.onerror = () => settleSpeech(speech, "error");
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      settleSpeech(speech, "error");
+    }
+  });
+}
+
+/**
  * Fala a frase em ingles e informa como a reproducao terminou. Uma nova chamada
  * substitui a anterior, em vez de enfileirar as duas.
  */

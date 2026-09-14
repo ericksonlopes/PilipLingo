@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ApiError, vocabularyApi } from "../../lib/api";
+import { detectTypos } from "../../lib/answers";
 import { speak } from "../../lib/speech";
 import type { StudyExercise } from "../../lib/types";
 import AudioButton from "./AudioButton";
@@ -42,6 +43,21 @@ export default function SentenceBuilder({
 
   const isBlank = !text.trim();
   const submitDisabled = isBlank || validating || isResolved;
+
+  // Palavras do card usadas como referencia para detectar erros de digitacao.
+  // Inclui a frase de exemplo e o focus_term para maximizar cobertura.
+  const referenceWords = useMemo(() => {
+    const parts: string[] = [];
+    if (exercise.card.sentence) parts.push(...exercise.card.sentence.split(/\s+/));
+    if (exercise.prompt) parts.push(...exercise.prompt.split(/\s+/));
+    return parts;
+  }, [exercise.card.sentence, exercise.prompt]);
+
+  // Detecta possiveis erros de digitacao em tempo real (so antes de resolver).
+  const typos = useMemo(
+    () => (isResolved || isBlank ? [] : detectTypos(text, referenceWords)),
+    [text, referenceWords, isResolved, isBlank],
+  );
 
   async function handleSubmit() {
     if (submitDisabled) return;
@@ -86,9 +102,17 @@ export default function SentenceBuilder({
         {exercise.prompt}
       </p>
 
-      {/* Traducao do termo (label secundario, so quando disponivel) */}
+      {/* Traducao do termo. Cards novos trazem focus_term_translation; cards
+          antigos (antes dessa feature) caem na traducao da frase inteira, para
+          que o aluno nunca fique sem saber o significado do termo indicado. */}
       {exercise.card.focus_term_translation != null ? (
-        <p className="exercise__hint">{exercise.card.focus_term_translation}</p>
+        <p className="exercise__hint sentence-builder__term-translation">
+          {exercise.card.focus_term_translation}
+        </p>
+      ) : exercise.card.translation ? (
+        <p className="exercise__hint sentence-builder__term-translation">
+          Tradução da frase: {exercise.card.translation}
+        </p>
       ) : null}
 
       {/* Botão de dica — mostra a frase de exemplo do card antes de resolver */}
@@ -127,6 +151,27 @@ export default function SentenceBuilder({
         spellCheck={false}
         placeholder="Digite uma frase em inglês…"
       />
+
+      {/* Aviso de possiveis erros de digitacao — aparece em tempo real */}
+      {typos.length > 0 && !isResolved && (
+        <div className="spell-hint" role="status" aria-live="polite">
+          <span className="spell-hint__icon" aria-hidden="true">✏️</span>
+          <span className="spell-hint__text">
+            Você quis dizer{" "}
+            {typos.map((t, i) => (
+              <span key={t.original}>
+                {i > 0 && ", "}
+                <span className="spell-hint__pair">
+                  <span className="spell-hint__wrong" lang="en">{t.original}</span>
+                  {" → "}
+                  <strong className="spell-hint__suggestion" lang="en">{t.suggestion}</strong>
+                </span>
+              </span>
+            ))}
+            ?
+          </span>
+        </div>
+      )}
 
       {/* Erro de rede */}
       {networkError ? (

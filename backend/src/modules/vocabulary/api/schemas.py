@@ -7,7 +7,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from modules.vocabulary.application.dto import GeneratedSentences, SeenWordItem, StudyHistoryPage
+from modules.vocabulary.application.dto import (
+    GeneratedSentences,
+    SeenWordItem,
+    StudyHistoryPage,
+    TranslationResult,
+)
 from modules.vocabulary.domain.entities import (
     GeneratedSentence,
     ProficiencyLevel,
@@ -355,3 +360,70 @@ class SentenceBuilderValidateResponse(BaseModel):
     valid: bool
     reason: str | None = None
     feedback: str | None = None
+
+
+# ---------- traducao avancada ----------
+
+class TranslateRequest(BaseModel):
+    """Payload para o endpoint de traducao avancada."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    text: str = Field(
+        min_length=1,
+        max_length=1000,
+        description="Frase ou expressao a traduzir e analisar.",
+        examples=["I've been looking forward to this moment."],
+    )
+
+
+class TranslationChunkResponse(BaseModel):
+    """Um bloco gramatical da frase com papel e explicacao."""
+
+    text: str
+    role: str
+    explanation: str
+
+
+class TranslationCorrectionResponse(BaseModel):
+    """Um erro gramatical/ortografico encontrado na entrada em ingles."""
+
+    original: str
+    corrected: str
+    explanation: str
+
+
+class TranslateResponse(BaseModel):
+    """Resultado da traducao avancada com analise de blocos."""
+
+    original: str
+    translation: str
+    english_phrase: str
+    portuguese_phrase: str
+    corrections: list[TranslationCorrectionResponse]
+    chunks: list[TranslationChunkResponse]
+    assembly_summary: str
+
+    @classmethod
+    def from_result(cls, result: TranslationResult) -> TranslateResponse:
+        return cls(
+            original=result.original,
+            translation=result.translation,
+            english_phrase=result.english_phrase,
+            portuguese_phrase=result.portuguese_phrase,
+            corrections=[
+                TranslationCorrectionResponse(
+                    original=c.original,
+                    corrected=c.corrected,
+                    explanation=c.explanation,
+                )
+                for c in result.corrections
+            ],
+            chunks=[
+                TranslationChunkResponse(
+                    text=c.text, role=c.role, explanation=c.explanation
+                )
+                for c in result.chunks
+            ],
+            assembly_summary=result.assembly_summary,
+        )

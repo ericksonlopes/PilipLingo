@@ -19,7 +19,9 @@ from modules.vocabulary.application.use_cases import (
     SaveSessionWords,
     UpdateVocabularyEntry,
 )
+from modules.vocabulary.application.translate_phrase import TranslatePhrase
 from modules.vocabulary.domain.ports import (
+    PhraseTranslator,
     SentenceGenerator,
     StudyCardRepository,
     VocabularyRepository,
@@ -27,6 +29,7 @@ from modules.vocabulary.domain.ports import (
 )
 from modules.vocabulary.infrastructure.chat_model import create_chat_model
 from modules.vocabulary.infrastructure.gemini_generator import GeminiSentenceGenerator
+from modules.vocabulary.infrastructure.gemini_phrase_translator import GeminiPhraseTranslator
 from modules.vocabulary.infrastructure.repository import (
     SqlAlchemyVocabularyRepository,
 )
@@ -155,3 +158,17 @@ def get_sentence_validator(request: Request) -> SentenceValidatorService:
 
 
 SentenceValidatorDep = Annotated[SentenceValidatorService, Depends(get_sentence_validator)]
+
+
+def get_phrase_translator(settings: SettingsDep) -> PhraseTranslator:
+    """Levanta SentenceGeneratorNotConfigured (503) se faltar a chave da API."""
+    return GeminiPhraseTranslator(create_chat_model(settings))
+
+
+def get_translate_phrase_use_case(
+    translator: Annotated[PhraseTranslator, Depends(get_phrase_translator)],
+) -> TranslatePhrase:
+    return TranslatePhrase(translator)
+
+
+TranslatePhraseDep = Annotated[TranslatePhrase, Depends(get_translate_phrase_use_case)]

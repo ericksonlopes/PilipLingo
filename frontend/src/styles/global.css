@@ -18,6 +18,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
   --tab-bar-height: 62px;
+  /* Altura total do .app-header (safe-top + padding-top + conteúdo + padding-bottom + border) */
+  --app-header-height: calc(var(--safe-top) + 14px + 38px + 12px + 1px);
 
   color-scheme: dark;
   font-family:
@@ -35,7 +37,7 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
@@ -46,7 +48,6 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  overscroll-behavior-y: none;
 }
 
 button,
@@ -1068,6 +1069,34 @@ button {
   color: #ffc9c9;
 }
 
+/* ---------- alternar digitar / blocos ---------- */
+
+.input-mode {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-input) 55%, transparent);
+}
+
+.input-mode__option {
+  min-height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 4px);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.input-mode__option--on {
+  background: var(--primary);
+  color: #fff;
+}
+
 /* ---------- blocos ---------- */
 
 .blocks {
@@ -1291,6 +1320,11 @@ button {
 }
 
 /* ---------- sentence builder ---------- */
+
+.sentence-builder__term-translation {
+  font-size: 0.95rem;
+  color: var(--text);
+}
 
 .sentence-builder__textarea {
   display: block;
@@ -1796,11 +1830,25 @@ button {
 /* --- chat view --- */
 
 .chat-view {
+  /*
+   * Ancorado na viewport: header do app no topo, tab bar na base.
+   * Isola o chat do scroll do .app-main — só .chat-view__messages rola.
+   * Mesma estratégia do .translate-page--chat.
+   */
+  position: fixed;
+  inset: 0;
+  top: var(--app-header-height);
+  bottom: calc(var(--tab-bar-height) + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 720px;
+  padding: 0 16px 12px;
   display: flex;
   flex-direction: column;
-  /* Ocupa toda a altura disponível exceto o tab bar */
-  height: calc(100vh - var(--tab-bar-height) - var(--safe-bottom) - 56px);
-  min-height: 400px;
+  z-index: 1;
+  background: var(--bg);
+  overflow: hidden;
 }
 
 .chat-view__header {
@@ -1810,6 +1858,7 @@ button {
   gap: 10px;
   padding: 10px 0 8px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;  /* fixo no topo, nunca encolhe */
 }
 
 .chat-view__meta {
@@ -1840,6 +1889,7 @@ button {
 
 .chat-view__messages {
   flex: 1;
+  min-height: 0;  /* obrigatório para overflow-y funcionar em flex item */
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 12px 0 8px;
@@ -1865,6 +1915,11 @@ button {
   align-items: flex-end;
   padding: 10px 0 4px;
   border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  z-index: 2;
+  flex-shrink: 0;
 }
 
 .chat-view__input {
@@ -2105,4 +2160,792 @@ button {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+/* ===== tradução avançada ===== */
+
+/* paleta de cores para os blocos (5 tons que se repetem) */
+:root {
+  --chunk-1: #4f8cff;
+  --chunk-2: #a78bfa;
+  --chunk-3: #34d399;
+  --chunk-4: #fb923c;
+  --chunk-5: #f472b6;
+}
+
+.translation-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── seção genérica ── */
+
+.tb-section {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.tb-section--main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tb-section__title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tb-section__icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* ── frase original + tradução ── */
+
+.tb-original {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.tb-translation {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-style: italic;
+  overflow-wrap: anywhere;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+/* ── blocos inline coloridos ── */
+
+.tb-chunks-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.tb-chunk-token {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.tb-chunk-token--1 { background: color-mix(in srgb, var(--chunk-1) 20%, transparent); color: var(--chunk-1); }
+.tb-chunk-token--2 { background: color-mix(in srgb, var(--chunk-2) 20%, transparent); color: var(--chunk-2); }
+.tb-chunk-token--3 { background: color-mix(in srgb, var(--chunk-3) 20%, transparent); color: var(--chunk-3); }
+.tb-chunk-token--4 { background: color-mix(in srgb, var(--chunk-4) 20%, transparent); color: var(--chunk-4); }
+.tb-chunk-token--5 { background: color-mix(in srgb, var(--chunk-5) 20%, transparent); color: var(--chunk-5); }
+
+/* ── lista detalhada de blocos ── */
+
+.tb-chunk-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tb-chunk-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid;
+}
+
+.tb-chunk-item--1 { border-color: var(--chunk-1); background: color-mix(in srgb, var(--chunk-1) 8%, var(--bg-elevated)); }
+.tb-chunk-item--2 { border-color: var(--chunk-2); background: color-mix(in srgb, var(--chunk-2) 8%, var(--bg-elevated)); }
+.tb-chunk-item--3 { border-color: var(--chunk-3); background: color-mix(in srgb, var(--chunk-3) 8%, var(--bg-elevated)); }
+.tb-chunk-item--4 { border-color: var(--chunk-4); background: color-mix(in srgb, var(--chunk-4) 8%, var(--bg-elevated)); }
+.tb-chunk-item--5 { border-color: var(--chunk-5); background: color-mix(in srgb, var(--chunk-5) 8%, var(--bg-elevated)); }
+
+.tb-chunk-item__text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.tb-chunk-item__role {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+
+.tb-chunk-item--1 .tb-chunk-item__role { color: var(--chunk-1); }
+.tb-chunk-item--2 .tb-chunk-item__role { color: var(--chunk-2); }
+.tb-chunk-item--3 .tb-chunk-item__role { color: var(--chunk-3); }
+.tb-chunk-item--4 .tb-chunk-item__role { color: var(--chunk-4); }
+.tb-chunk-item--5 .tb-chunk-item__role { color: var(--chunk-5); }
+
+.tb-chunk-item__explanation {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ── resumo de montagem ── */
+
+.tb-assembly-summary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ── layout da página de tradução ── */
+
+.translate-page {
+  gap: 16px;
+}
+
+/*
+ * Modo chat: ancora na viewport diretamente via position fixed.
+ * Isso isola completamente o layout do chat do fluxo de scroll do .app-main,
+ * que volta a ser um block normal para as outras páginas.
+ *
+ * Limites: header do app no topo, tab bar na base, padding lateral do .app-main.
+ * max-width de 720px espelha o .app-shell.
+ */
+.translate-page--chat {
+  position: fixed;
+  inset: 0;
+  top: var(--app-header-height);
+  bottom: calc(var(--tab-bar-height) + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 720px;
+  padding: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 1;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* O cabeçalho (título + subtítulo) nunca encolhe */
+.translate-page__head {
+  flex-shrink: 0;
+}
+
+/* As abas também não encolhem */
+.translate-page--chat .translate-tabs {
+  flex-shrink: 0;
+}
+
+.translate-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Área de resultado com scroll invisível */
+.translate-result-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+  scrollbar-width: none; /* Firefox */
+}
+
+.translate-result-scroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* SingleMode ocupa o espaço restante no container fixo */
+.translate-single-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.translate-textarea {
+  display: block;
+  width: 100%;
+  min-height: 100px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+  overflow-wrap: anywhere;
+  transition: border-color 0.15s;
+}
+
+.translate-textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-color: var(--primary);
+}
+
+.translate-textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.translate-page__title {
+  margin: 0 0 2px;
+  font-size: 1.25rem;
+}
+
+.translate-page__subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.translate-char-count {
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.translate-char-count--warn {
+  color: #fbbf24;
+}
+
+/* ── par EN ↔ PT ── */
+
+.tb-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tb-pair__side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tb-pair__lang {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.tb-pair__divider {
+  height: 1px;
+  background: var(--border);
+  border: none;
+}
+
+/* ===== tradução — seletor de abas ===== */
+
+.translate-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.translate-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.translate-tab svg {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+}
+
+.translate-tab:hover:not(.translate-tab--active) {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--text);
+}
+
+.translate-tab--active {
+  background: var(--primary);
+  color: #06132b;
+  font-weight: 700;
+}
+
+/* ===== chat de tradução ===== */
+
+/*
+ * Layout do chat de tradução.
+ *
+ * Estrutura:
+ *   .tc-view  (flex column, ocupa o espaço restante da página, NÃO rola)
+ *     .tc-view__header   (fixo, não encolhe)
+ *     .tc-view__messages (flex: 1, overflow-y: auto — ÚNICO que rola)
+ *     .tc-view__input-area (fixo, não encolhe)
+ *     <p setup-note>     (fixo, não encolhe)
+ */
+.tc-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;   /* sem isso flex items ignoram overflow dos filhos */
+  gap: 8px;
+  /* NÃO tem overflow — quem rola é apenas __messages */
+}
+
+.tc-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;  /* nunca encolhe */
+}
+
+.tc-view__hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Única parte que rola */
+.tc-view__messages {
+  flex: 1;
+  min-height: 0;   /* obrigatório para overflow-y funcionar em flex item */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0 8px;
+}
+
+.tc-view__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Fixo na base — fora do scroll */
+.tc-view__input-area {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-shrink: 0;  /* nunca encolhe */
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  background: var(--bg);
+  z-index: 2;
+}
+
+.tc-view__input {
+  flex: 1;
+  min-height: var(--tap);
+  max-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.4;
+  resize: none;
+  overflow-wrap: anywhere;
+  transition: border-color 0.15s;
+}
+
+.tc-view__input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-color: var(--primary);
+}
+
+.tc-view__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── turno (par de bolhas) ── */
+
+.tc-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── bolha de resposta ── */
+
+.tc-bubble-ai {
+  align-self: flex-start;
+  max-width: 90%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tc-bubble-ai--loading {
+  padding: 10px 16px;
+}
+
+.tc-bubble-ai--error {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-elevated));
+}
+
+.tc-bubble-ai__error-text {
+  margin: 0;
+  color: #ffc9c9;
+  font-size: 0.88rem;
+}
+
+/* ── par compacto EN / PT ── */
+
+.tc-pair-compact {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.tc-pair-compact__lang {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.tc-pair-compact__en {
+  margin: 0;
+  font-size: 0.97rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.tc-pair-compact--pt .tc-pair-compact__pt {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ── accordion ── */
+
+.tc-accordion {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.tc-accordion__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 40%, var(--border));
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.tc-accordion__toggle:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.tc-accordion__chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.tc-accordion__chevron--open {
+  transform: rotate(180deg);
+}
+
+.tc-accordion__panel {
+  margin-top: 10px;
+  animation: hint-in 160ms ease-out;
+}
+
+/* ===== SpeakButton ===== */
+
+.speak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.speak-btn svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.speak-btn:hover:not(:disabled) {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.speak-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* estado tocando — pulse suave */
+.speak-btn--playing {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  animation: speak-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes speak-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* estado erro — vermelho brevemente */
+.speak-btn--error {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+/* variante pequena (ao lado do label do par) */
+.speak-btn--sm {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 6px;
+}
+
+.speak-btn--sm svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* variante inline dentro da bolha de chat (sem borda, só ícone) */
+.speak-btn--inline {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.speak-btn--inline svg {
+  width: 15px;
+  height: 15px;
+}
+
+.speak-btn--inline:hover:not(:disabled) {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+}
+
+.speak-btn__label {
+  /* oculto visualmente mas disponível para screen-readers quando necessário */
+  font-size: 0.75rem;
+}
+
+/* ── ajuste no header do par para acomodar o botão ── */
+
+.tb-pair__side-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+/* par compacto no chat: alinha ícone de áudio à direita */
+.tc-pair-compact {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.tc-pair-compact .speak-btn--inline {
+  align-self: center;
+}
+
+/* ===== CorrectionBanner ===== */
+
+.correction-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--border));
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #f59e0b 8%, var(--bg-elevated));
+}
+
+.correction-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.correction-banner__icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.correction-banner__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.correction-banner__phrase {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.correction-banner__phrase-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ── lista de erros ── */
+
+.correction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.correction-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.correction-item__diff {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.correction-item__wrong {
+  font-weight: 600;
+  color: #fca5a5;
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, #f87171 70%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.correction-item__arrow {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.correction-item__right {
+  font-weight: 700;
+  color: #86efac;
+  overflow-wrap: anywhere;
+}
+
+.correction-item__explanation {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── footer da área de input (contador + botões numa linha) ── */
+
+.translate-input-area__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.translate-input-area__footer .translate-char-count {
+  flex: 1;
+  text-align: left;
 }

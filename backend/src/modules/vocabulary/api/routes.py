@@ -25,6 +25,7 @@ from modules.vocabulary.api.dependencies import (
     SaveSessionWordsDep,
     SentenceValidatorDep,
     StudyHistoryDep,
+    TranslatePhraseDep,
     UpdateUseCaseDep,
 )
 from modules.vocabulary.api.schemas import (
@@ -43,6 +44,8 @@ from modules.vocabulary.api.schemas import (
     StudyOptionsResponse,
     StudySessionResponse,
     StudyThemeOption,
+    TranslateRequest,
+    TranslateResponse,
     VocabularyEntryCreateRequest,
     VocabularyEntryResponse,
     VocabularyEntryUpdateRequest,
@@ -58,9 +61,11 @@ from modules.vocabulary.application.dto import (
     SaveSessionWordsCommand,
     StudyHistoryQuery,
     StudySessionQuery,
+    TranslationCommand,
     UpdateVocabularyEntryCommand,
 )
 from modules.vocabulary.domain.study import STUDY_THEME_LABELS, ExerciseMode
+from modules.users.api.dependencies import CurrentUserDep
 from shared.api.dependencies import SettingsDep
 from shared.domain.proficiency import ProficiencyLevel
 
@@ -268,6 +273,23 @@ async def validate_sentence_builder(
         reason=result.reason,
         feedback=result.feedback,
     )
+
+
+@router.post(
+    "/translate",
+    response_model=TranslateResponse,
+    summary="Traduz uma frase e retorna analise estrutural em blocos",
+    responses={
+        503: {"description": "Servico de IA nao configurado ou indisponivel"},
+    },
+)
+async def translate_phrase(
+    payload: TranslateRequest,
+    use_case: TranslatePhraseDep,
+    _user: CurrentUserDep,
+) -> TranslateResponse:
+    result = await use_case.execute(TranslationCommand(text=payload.text))
+    return TranslateResponse.from_result(result)
 
 
 @router.get(

@@ -23,6 +23,8 @@ import type {
   StudyHistoryPage,
   StudyOptions,
   StudySession,
+  TranslateInput,
+  TranslationResult,
   UpdateVocabularyEntryInput,
   VocabularyEntry,
   VocabularyPage,
@@ -323,5 +325,16 @@ export const chatApi = {
       `/chat/conversations/${conversationId}/turns`,
       { signal },
     );
+  },
+};
+
+export const translationApi = {
+  /** Traduz uma frase e retorna analise estrutural em blocos. */
+  translate(input: TranslateInput, signal?: AbortSignal) {
+    return request<TranslationResult>("/vocabulary/translate", {
+      method: "POST",
+      body: JSON.stringify(input),
+      signal,
+    });
   },
 };
