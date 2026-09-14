@@ -14,6 +14,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Response, status
 
+from modules.users.api.dependencies import CurrentUserDep
 from modules.vocabulary.api.dependencies import (
     BuildStudySessionDep,
     CreateUseCaseDep,
@@ -65,7 +66,6 @@ from modules.vocabulary.application.dto import (
     UpdateVocabularyEntryCommand,
 )
 from modules.vocabulary.domain.study import STUDY_THEME_LABELS, ExerciseMode
-from modules.users.api.dependencies import CurrentUserDep
 from shared.api.dependencies import SettingsDep
 from shared.domain.proficiency import ProficiencyLevel
 

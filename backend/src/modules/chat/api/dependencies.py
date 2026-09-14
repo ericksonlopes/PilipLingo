@@ -11,6 +11,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from modules.chat.application.use_cases import (
     AbandonConversation,
+    CompleteConversation,
     CreateConversation,
     GetChatStatus,
     GetTurns,
@@ -114,6 +115,10 @@ def get_abandon_conversation_use_case(repo: ConversationRepoDep) -> AbandonConve
     return AbandonConversation(repo)
 
 
+def get_complete_conversation_use_case(repo: ConversationRepoDep) -> CompleteConversation:
+    return CompleteConversation(repo)
+
+
 def get_list_conversations_use_case(repo: ConversationRepoDep) -> ListConversations:
     return ListConversations(repo)
 
@@ -151,6 +156,9 @@ ListTopicsDep = Annotated[ListTopics, Depends(get_list_topics_use_case)]
 ListGoalsDep = Annotated[ListGoals, Depends(get_list_goals_use_case)]
 CreateConversationDep = Annotated[CreateConversation, Depends(get_create_conversation_use_case)]
 AbandonConversationDep = Annotated[AbandonConversation, Depends(get_abandon_conversation_use_case)]
+CompleteConversationDep = Annotated[
+    CompleteConversation, Depends(get_complete_conversation_use_case)
+]
 ListConversationsDep = Annotated[ListConversations, Depends(get_list_conversations_use_case)]
 SendTurnDep = Annotated[SendTurn, Depends(get_send_turn_use_case)]
 GetTurnsDep = Annotated[GetTurns, Depends(get_get_turns_use_case)]

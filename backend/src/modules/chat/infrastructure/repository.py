@@ -180,10 +180,23 @@ class SqlAlchemyGoalRepository(GoalRepository):
         return int((await self._session.execute(stmt)).scalar_one())
 
     async def seed(self, goals: list[ChatGoal]) -> None:
-        """Insere somente se a tabela estiver vazia."""
-        count = await self.count_goals()
-        if count > 0:
+        """Insere ou sincroniza metas pré-definidas e seus targets."""
+        stmt = select(ChatGoalModel)
+        existing_rows = (await self._session.execute(stmt)).scalars().all()
+        if existing_rows:
+            existing_by_label = {row.label: row for row in existing_rows}
+            for goal in goals:
+                if goal.label in existing_by_label:
+                    model = existing_by_label[goal.label]
+                    if not model.targets or model.targets != goal.targets:
+                        model.targets = goal.targets
+                        model.description = goal.description
+                        model.level_hint = goal.level_hint.value
+                else:
+                    self._session.add(goal_to_model(goal))
+            await self._session.flush()
             return
+
         for goal in goals:
             self._session.add(goal_to_model(goal))
         await self._session.flush()

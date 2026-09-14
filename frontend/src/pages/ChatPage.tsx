@@ -32,6 +32,7 @@ export default function ChatPage({ level }: ChatPageProps) {
     startFree,
     sendMessage,
     abandonConversation,
+    completeConversation,
     retryLoad,
     newConversation,
   } = useChatPage(level);
@@ -139,6 +140,7 @@ export default function ChatPage({ level }: ChatPageProps) {
       <div className="page">
         <CompletedView
           goalAchieved={goalAchieved}
+          goals={conversation?.goals}
           turnCount={turns.length}
           onNewConversation={newConversation}
         />
@@ -157,6 +159,7 @@ export default function ChatPage({ level }: ChatPageProps) {
         error={error}
         onSend={sendMessage}
         onAbandon={abandonConversation}
+        onComplete={completeConversation}
       />
     );
   }

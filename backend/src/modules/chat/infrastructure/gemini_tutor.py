@@ -56,8 +56,16 @@ class _TurnResponse(BaseModel):
     goal_achieved: bool = Field(
         default=False,
         description=(
-            "Set to true ONLY when the student has demonstrably achieved the stated Goal "
-            "in this turn. Always false for non-GOAL conversations."
+            "Set to true ONLY when ALL stated goals have been demonstrably achieved "
+            "in this conversation. Always false for non-GOAL conversations."
+        ),
+    )
+    goals_achieved: list[bool] = Field(
+        default_factory=list,
+        description=(
+            "List of booleans (one for each goal in order) indicating whether each "
+            "specific goal information has been extracted/achieved so far. "
+            "Leave empty if not in GOAL mode."
         ),
     )
 
@@ -77,8 +85,13 @@ Your behavior:
 - Keep replies concise (2-5 sentences for {level} level).
 - Gently incorporate corrections into your reply without being condescending.
 - In TOPIC mode, keep the conversation on the topic.
-- In GOAL mode, steer the conversation toward achieving the goal. \
-  Set goal_achieved=true ONLY when the student has clearly demonstrated the goal.
+- In GOAL mode, play the role of the conversation partner naturally. \
+  When the student asks questions relevant to any of the goals, answer naturally \
+  and accurately with realistic details (e.g. name, city, age, routine, etc.) \
+  so the student can discover/extract the information. \
+  In `goals_achieved`, return a list of booleans corresponding to each goal. \
+  Set to true if that specific goal has been achieved or extracted so far. \
+  Set `goal_achieved=true` ONLY when ALL goals have been achieved.
 - In FREE mode, be a friendly conversation partner.
 
 Feedback rules:
@@ -155,8 +168,17 @@ class GeminiChatTutor(ChatAIPort):
     def _build_context_line(context: TurnContext) -> str:
         if context.mode == "TOPIC" and context.topic:
             return f"Topic: {context.topic}"
-        if context.mode == "GOAL" and context.goal:
-            return f"Goal: {context.goal}"
+        if context.mode == "GOAL":
+            lines: list[str] = []
+            if context.goal:
+                lines.append(f"Scenario: {context.goal}")
+            if context.goals:
+                lines.append("Goals to extract from the conversation partner:")
+                for i, g in enumerate(context.goals, 1):
+                    is_done = i - 1 < len(context.goals_progress) and context.goals_progress[i - 1]
+                    status = "ACHIEVED" if is_done else "PENDING"
+                    lines.append(f"  {i}. {g} [{status}]")
+            return "\n".join(lines)
         return ""
 
     @classmethod
@@ -188,12 +210,22 @@ class GeminiChatTutor(ChatAIPort):
                 logger.warning("[chat-gemini] feedback malformado, ignorando")
                 feedback = None
 
-        goal_achieved = (
-            bool(result.goal_achieved) if context.evaluate_goal else False
+        goals_progress: list[bool] = []
+        if context.evaluate_goal:
+            if isinstance(result.goals_achieved, list) and result.goals_achieved:
+                goals_progress = [bool(x) for x in result.goals_achieved]
+            elif context.goals:
+                goals_progress = [bool(result.goal_achieved)] * len(context.goals)
+
+        all_goals_achieved = (
+            (bool(result.goal_achieved) or (bool(goals_progress) and all(goals_progress)))
+            if context.evaluate_goal
+            else False
         )
 
         return TurnResult(
             ai_reply=result.reply.strip(),
             feedback=feedback,
-            goal_achieved=goal_achieved,
+            goal_achieved=all_goals_achieved,
+            goals_progress=goals_progress,
         )

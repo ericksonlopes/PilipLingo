@@ -14,6 +14,7 @@ from fastapi import APIRouter, Query, Response, status
 from modules.chat.api.dependencies import (
     AbandonConversationDep,
     ChatStatusDep,
+    CompleteConversationDep,
     CreateConversationDep,
     GetTurnsDep,
     ListConversationsDep,
@@ -34,6 +35,7 @@ from modules.chat.api.schemas import (
 )
 from modules.chat.application.dto import (
     AbandonConversationCommand,
+    CompleteConversationCommand,
     CreateConversationCommand,
     GetTurnsQuery,
     ListConversationsQuery,
@@ -79,6 +81,7 @@ async def create_conversation(
         level=payload.level,
         topic=payload.topic,
         goal=payload.goal,
+        goals=payload.goals,
     )
     conversation = await use_case.execute(command)
     return ConversationResponse.from_entity(conversation)
@@ -104,6 +107,25 @@ async def list_conversations(
     )
     page = await use_case.execute(query)
     return ConversationListResponse.from_page(page)
+
+
+@router.post(
+    "/conversations/{conversation_id}/complete",
+    response_model=ConversationResponse,
+    summary="Conclui uma conversa ativa",
+    responses={
+        404: {"description": "Conversa nao encontrada"},
+    },
+)
+async def complete_conversation(
+    conversation_id: UUID,
+    use_case: CompleteConversationDep,
+    user: CurrentUserDep,
+) -> ConversationResponse:
+    conv = await use_case.execute(
+        CompleteConversationCommand(conversation_id=conversation_id, user_id=user.id)
+    )
+    return ConversationResponse.from_entity(conv)
 
 
 @router.delete(

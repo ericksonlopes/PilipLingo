@@ -6,8 +6,8 @@ import logging
 
 from modules.vocabulary.application.dto import (
     TranslationChunkItem,
-    TranslationCorrectionItem,
     TranslationCommand,
+    TranslationCorrectionItem,
     TranslationResult,
 )
 from modules.vocabulary.domain.ports import PhraseTranslator

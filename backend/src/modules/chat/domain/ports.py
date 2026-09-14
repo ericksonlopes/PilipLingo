@@ -124,6 +124,8 @@ class TurnContext:
     level: str
     topic: str | None
     goal: str | None
+    goals: list[str] = field(default_factory=list)
+    goals_progress: list[bool] = field(default_factory=list)
     history: list[tuple[str, str]] = field(default_factory=list)
     # Quando True, solicita avaliacao de meta atingida na mesma chamada.
     evaluate_goal: bool = False
@@ -136,6 +138,7 @@ class TurnResult:
     ai_reply: str
     feedback: TurnFeedback | None
     goal_achieved: bool = False
+    goals_progress: list[bool] = field(default_factory=list)
 
 
 class ChatAIPort(ABC):

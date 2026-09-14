@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Uuid, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from shared.database import Base
@@ -28,6 +28,8 @@ class ConversationModel(Base):
     level: Mapped[str] = mapped_column(String(4), nullable=False)
     topic: Mapped[str | None] = mapped_column(String(500), nullable=True)
     goal: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    goals: Mapped[Any | None] = mapped_column(JSON, nullable=True)
+    goals_progress: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     goal_status: Mapped[str] = mapped_column(String(16), nullable=False, default="in_progress")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", index=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -92,6 +94,9 @@ class ChatGoalModel(Base):
     label: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(255), nullable=False)
     level_hint: Mapped[str] = mapped_column(String(4), nullable=False)
+    targets: Mapped[Any] = mapped_column(
+        JSON, nullable=False, default=list, server_default=text("'[]'")
+    )
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<ChatGoalModel {self.label!r}>"

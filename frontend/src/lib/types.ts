@@ -233,6 +233,7 @@ export interface ChatGoal {
   label: string;
   description: string;
   level_hint: ProficiencyLevel;
+  targets: string[];
 }
 
 export interface ChatStatus {
@@ -247,6 +248,8 @@ export interface Conversation {
   level: ProficiencyLevel;
   topic: string | null;
   goal: string | null;
+  goals: string[];
+  goals_progress: boolean[];
   goal_status: GoalStatus;
   status: ConversationStatus;
   created_at: string;
@@ -285,6 +288,7 @@ export interface SendTurnResult {
   turn: ConversationTurn;
   conversation_completed: boolean;
   goal_achieved: boolean;
+  goals_progress?: boolean[];
 }
 
 export interface CreateConversationInput {
@@ -292,6 +296,7 @@ export interface CreateConversationInput {
   level: ProficiencyLevel;
   topic?: string | null;
   goal?: string | null;
+  goals?: string[] | null;
 }
 
 // ---------- tradução avançada ----------

@@ -36,10 +36,11 @@ export interface UseChatPageReturn {
   selectMode: (mode: ConversationMode) => void;
   goBack: () => void;
   startWithTopic: (topic: string) => Promise<void>;
-  startWithGoal: (goal: string) => Promise<void>;
+  startWithGoal: (goal: string, goals?: string[]) => Promise<void>;
   startFree: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   abandonConversation: () => Promise<void>;
+  completeConversation: () => Promise<void>;
   retryLoad: () => void;
   newConversation: () => void;
 }
@@ -123,7 +124,7 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
   }, []);
 
   const startConversation = useCallback(
-    async (mode: ConversationMode, topic?: string, goal?: string) => {
+    async (mode: ConversationMode, topic?: string, goal?: string, goals?: string[]) => {
       setError(null);
       try {
         const conv = await chatApi.createConversation({
@@ -131,6 +132,7 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
           level,
           topic: topic ?? null,
           goal: goal ?? null,
+          goals: goals ?? null,
         });
         setConversation(conv);
         setTurns([]);
@@ -153,7 +155,7 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
   );
 
   const startWithGoal = useCallback(
-    (goal: string) => startConversation("GOAL", undefined, goal),
+    (goal: string, goals?: string[]) => startConversation("GOAL", undefined, goal, goals),
     [startConversation],
   );
 
@@ -184,8 +186,20 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
           result.turn,
         ]);
 
+        if (result.goals_progress) {
+          setConversation((c) =>
+            c
+              ? {
+                  ...c,
+                  goals_progress: result.goals_progress!,
+                  goal_status: result.goal_achieved ? "achieved" : c.goal_status,
+                }
+              : c,
+          );
+        }
+
         if (result.conversation_completed) {
-          setConversation((c) => c ? { ...c, status: "completed" } : c);
+          setConversation((c) => (c ? { ...c, status: "completed" } : c));
           setScreen("completed");
         }
       } catch (err) {
@@ -212,6 +226,20 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Erro ao encerrar conversa.",
+      );
+    }
+  }, [conversation]);
+
+  const completeConversation = useCallback(async () => {
+    if (!conversation) return;
+    setError(null);
+    try {
+      const updated = await chatApi.completeConversation(conversation.id);
+      setConversation(updated);
+      setScreen("completed");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Erro ao concluir conversa.",
       );
     }
   }, [conversation]);
@@ -249,6 +277,7 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
     startFree,
     sendMessage,
     abandonConversation,
+    completeConversation,
     retryLoad,
     newConversation,
   };

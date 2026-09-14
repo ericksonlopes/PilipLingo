@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
@@ -84,6 +84,8 @@ class Conversation:
     status: ConversationStatus
     created_at: datetime
     updated_at: datetime
+    goals: list[str] = field(default_factory=list)
+    goals_progress: list[bool] = field(default_factory=list)
 
     @classmethod
     def create(
@@ -94,13 +96,33 @@ class Conversation:
         level: ProficiencyLevel,
         topic: str | None = None,
         goal: str | None = None,
+        goals: list[str] | None = None,
     ) -> Conversation:
         """Fabrica com validacao das invariantes."""
         if mode == ConversationMode.TOPIC and not (topic or "").strip():
             raise ValidationError("'topic' e obrigatorio para conversas no modo TOPIC.")
-        if mode == ConversationMode.GOAL and not (goal or "").strip():
-            raise ValidationError("'goal' e obrigatorio para conversas no modo GOAL.")
-        if goal and len(goal.strip()) > MAX_GOAL_LENGTH:
+        
+        cleaned_goals: list[str] = []
+        if goals:
+            cleaned_goals = [g.strip() for g in goals if g and g.strip()]
+            for g in cleaned_goals:
+                if len(g) > MAX_GOAL_LENGTH:
+                    raise ValidationError(
+                        f"Meta '{g[:30]}...' excede {MAX_GOAL_LENGTH} caracteres."
+                    )
+
+        if mode == ConversationMode.GOAL and not (goal or "").strip() and not cleaned_goals:
+            raise ValidationError(
+                "'goal' ou 'goals' e obrigatorio para conversas no modo GOAL."
+            )
+
+        goal_str = goal.strip() if goal else None
+        if not goal_str and cleaned_goals:
+            goal_str = " | ".join(cleaned_goals)
+        elif goal_str and not cleaned_goals:
+            cleaned_goals = [goal_str]
+
+        if goal_str and len(goal_str) > MAX_GOAL_LENGTH:
             raise ValidationError(f"'goal' excede {MAX_GOAL_LENGTH} caracteres.")
 
         now = datetime.now(UTC)
@@ -110,7 +132,9 @@ class Conversation:
             mode=mode,
             level=level,
             topic=topic.strip() if topic else None,
-            goal=goal.strip() if goal else None,
+            goal=goal_str,
+            goals=cleaned_goals,
+            goals_progress=[False] * len(cleaned_goals),
             goal_status=GoalStatus.IN_PROGRESS,
             status=ConversationStatus.ACTIVE,
             created_at=now,
@@ -218,6 +242,7 @@ class ChatGoal:
     label: str
     description: str
     level_hint: ProficiencyLevel
+    targets: list[str] = field(default_factory=list)
 
     @classmethod
     def create(
@@ -226,6 +251,7 @@ class ChatGoal:
         label: str,
         description: str,
         level_hint: ProficiencyLevel,
+        targets: list[str] | None = None,
     ) -> ChatGoal:
         lbl = (label or "").strip()
         if not lbl or len(lbl) > MAX_GOAL_LABEL_LENGTH:
@@ -238,4 +264,13 @@ class ChatGoal:
                 f"'description' da meta deve ter entre 1 e "
                 f"{MAX_GOAL_DESCRIPTION_LENGTH} caracteres."
             )
-        return cls(id=uuid4(), label=lbl, description=desc, level_hint=level_hint)
+        cleaned_targets: list[str] = []
+        if targets:
+            cleaned_targets = [t.strip() for t in targets if t and t.strip()]
+        return cls(
+            id=uuid4(),
+            label=lbl,
+            description=desc,
+            level_hint=level_hint,
+            targets=cleaned_targets,
+        )

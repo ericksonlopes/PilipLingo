@@ -43,6 +43,8 @@ def conversation_to_model(entity: Conversation) -> ConversationModel:
         level=entity.level.value,
         topic=entity.topic,
         goal=entity.goal,
+        goals=entity.goals,
+        goals_progress=entity.goals_progress,
         goal_status=entity.goal_status.value,
         status=entity.status.value,
         created_at=entity.created_at,
@@ -58,6 +60,8 @@ def conversation_to_domain(model: ConversationModel) -> Conversation:
         level=ProficiencyLevel(model.level),
         topic=model.topic,
         goal=model.goal,
+        goals=list(model.goals) if model.goals else [],
+        goals_progress=list(model.goals_progress) if model.goals_progress else [],
         goal_status=GoalStatus(model.goal_status),
         status=ConversationStatus(model.status),
         created_at=_as_utc(model.created_at),
@@ -67,6 +71,8 @@ def conversation_to_domain(model: ConversationModel) -> Conversation:
 
 def apply_conversation_to_model(model: ConversationModel, entity: Conversation) -> None:
     """Aplica mudancas de estado da entidade no model existente."""
+    model.goals = entity.goals
+    model.goals_progress = entity.goals_progress
     model.goal_status = entity.goal_status.value
     model.status = entity.status.value
     model.updated_at = entity.updated_at
@@ -163,6 +169,7 @@ def goal_to_model(entity: ChatGoal) -> ChatGoalModel:
         label=entity.label,
         description=entity.description,
         level_hint=entity.level_hint.value,
+        targets=entity.targets,
     )
 
 
@@ -172,4 +179,5 @@ def goal_to_domain(model: ChatGoalModel) -> ChatGoal:
         label=model.label,
         description=model.description,
         level_hint=ProficiencyLevel(model.level_hint),
+        targets=list(model.targets) if model.targets else [],
     )

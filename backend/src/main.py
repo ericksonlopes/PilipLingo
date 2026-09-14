@@ -41,66 +41,126 @@ _CHAT_TOPICS: list[tuple[str, str, str]] = [
     ("Environment", "Talk about environmental issues and sustainability", "B2"),
 ]
 
-_CHAT_GOALS: list[tuple[str, str, str]] = [
+_CHAT_GOALS: list[tuple[str, str, str, list[str]]] = [
     (
         "Apresentar-se e dar informacoes pessoais",
         "Perguntar e responder sobre nome, origem, profissao e familia",
         "A1",
+        [
+            "Saber o nome da pessoa",
+            "Saber onde a pessoa mora",
+            "Saber qual a idade da pessoa",
+        ],
     ),
     (
         "Descrever rotina diaria com Simple Present",
         "Usar o Simple Present para falar sobre habitos e horarios",
         "A1",
+        [
+            "Descobrir que horas a pessoa acorda",
+            "Descobrir o que ela faz no trabalho ou estudo",
+            "Descobrir o que ela faz no tempo livre",
+        ],
     ),
     (
         "Fazer perguntas sobre o passado",
         "Usar o Simple Past para perguntar e responder sobre eventos passados",
         "A2",
+        [
+            "Saber onde a pessoa passou o ultimo fim de semana",
+            "Saber com quem ela estava",
+            "Saber o que ela fez de mais legal",
+        ],
     ),
     (
         "Falar sobre planos futuros",
         "Usar going to e will para expressar planos e previsoes",
         "A2",
+        [
+            "Saber para onde a pessoa quer viajar",
+            "Saber quando essa viagem deve acontecer",
+            "Saber o que ela mais quer fazer la",
+        ],
     ),
     (
         "Pedir e dar direcoes",
         "Navegar por uma cidade usando vocabulario de direcao e localizacao",
         "A2",
+        [
+            "Saber a localizacao do destino",
+            "Saber qual o melhor caminho ou transporte",
+            "Saber quanto tempo leva para chegar",
+        ],
     ),
     (
         "Fazer e aceitar convites",
         "Convidar alguem para atividades e responder a convites de forma educada",
         "B1",
+        [
+            "Descobrir que atividade a pessoa gostaria de fazer",
+            "Combinar o dia e horario ideal",
+            "Definir onde voces vao se encontrar",
+        ],
     ),
     (
         "Discutir vantagens e desvantagens",
         "Usar conectivos (however, on the other hand) para argumentar sobre um tema",
         "B1",
+        [
+            "Descobrir a opiniao geral da pessoa",
+            "Extrair pelo menos uma vantagem mencionada",
+            "Extrair pelo menos uma desvantagem mencionada",
+        ],
     ),
     (
         "Narrar uma historia no passado",
         "Usar Simple Past e Past Continuous para contar uma historia com detalhes",
         "B1",
+        [
+            "Descobrir quando a historia aconteceu",
+            "Descobrir o momento mais emocionante ou inesperado",
+            "Descobrir como terminou a historia",
+        ],
     ),
     (
         "Expressar opiniao e concordar/discordar",
         "Usar expressoes como I think, I agree because para debates educados",
         "B2",
+        [
+            "Descobrir a opiniao da pessoa sobre o assunto",
+            "Descobrir o argumento principal dela",
+            "Descobrir como ela reage ao seu ponto de vista",
+        ],
     ),
     (
         "Conduzir uma entrevista de emprego",
         "Responder perguntas comuns de entrevista com fluencia e vocabulario profissional",
         "B2",
+        [
+            "Descobrir a profissao ou area de atuacao",
+            "Descobrir a maior experiencia anterior",
+            "Descobrir o principal objetivo de carreira",
+        ],
     ),
     (
         "Discutir questoes hipoteticas",
         "Usar o Second Conditional para falar sobre situacoes imaginarias",
         "B2",
+        [
+            "Descobrir o que a pessoa faria se ganhasse na loteria",
+            "Descobrir para onde ela viajaria se pudesse ir a qualquer lugar",
+            "Descobrir que profissao diferente ela escolheria",
+        ],
     ),
     (
         "Comunicar-se em situacoes de saude",
         "Descrever sintomas, entender instrucoes medicas e fazer perguntas ao medico",
         "B1",
+        [
+            "Descobrir o que a pessoa esta sentindo",
+            "Descobrir ha quanto tempo os sintomas comecaram",
+            "Descobrir que recomendacao ou remedio ela precisa",
+        ],
     ),
 ]
 

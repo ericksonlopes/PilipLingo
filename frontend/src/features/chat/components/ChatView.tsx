@@ -18,6 +18,7 @@ interface ChatViewProps {
   error: string | null;
   onSend: (text: string) => void;
   onAbandon: () => void;
+  onComplete?: () => void;
 }
 
 export default function ChatView({
@@ -28,8 +29,10 @@ export default function ChatView({
   error,
   onSend,
   onAbandon,
+  onComplete,
 }: ChatViewProps) {
   const [text, setText] = useState("");
+  const [dismissedPrompt, setDismissedPrompt] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,12 +65,34 @@ export default function ChatView({
   // Os "pending" são o último turno quando isPending = sem ai_reply
   const pendingTurnIndex = isTyping ? turns.length - 1 : -1;
 
+  const goals = conversation.goals || [];
+  const goalsProgress = conversation.goals_progress || [];
+  const achievedCount = goalsProgress.filter(Boolean).length;
+  const allGoalsAchieved =
+    goals.length > 0 &&
+    (achievedCount === goals.length || conversation.goal_status === "achieved");
+
+  const showCompletionModal = allGoalsAchieved && !dismissedPrompt;
+
+  function handleEndChat() {
+    if (onComplete) {
+      onComplete();
+    } else {
+      onAbandon();
+    }
+  }
+
   return (
     <div className="chat-view">
       {/* Cabeçalho com informações da conversa */}
       <div className="chat-view__header">
         <div className="chat-view__meta">
-          <span className="chat-view__mode">{modeLabel(conversation.mode)}</span>
+          <div className="chat-view__meta-top">
+            <span className="chat-view__mode">{modeLabel(conversation.mode)}</span>
+            {allGoalsAchieved && (
+              <span className="chat-view__badge-completed">3/3 Concluídas ✓</span>
+            )}
+          </div>
           {conversation.topic && (
             <span className="chat-view__topic">{conversation.topic}</span>
           )}
@@ -78,12 +103,45 @@ export default function ChatView({
         <button
           type="button"
           className="btn btn--ghost btn--sm"
-          onClick={onAbandon}
+          onClick={allGoalsAchieved && onComplete ? onComplete : onAbandon}
           aria-label="Encerrar conversa"
         >
           Encerrar
         </button>
       </div>
+
+      {/* Painel de metas em tempo real (modo GOAL) */}
+      {goals.length > 0 && (
+        <div className="chat-goals-bar" aria-label="Progresso das metas">
+          <div className="chat-goals-bar__header">
+            <span className="chat-goals-bar__title">
+              🎯 Metas a descobrir ({achievedCount}/{goals.length})
+            </span>
+            <div className="chat-goals-bar__meter">
+              <div
+                className="chat-goals-bar__meter-fill"
+                style={{ width: `${(achievedCount / goals.length) * 100}%` }}
+              />
+            </div>
+          </div>
+          <div className="chat-goals-bar__pills">
+            {goals.map((g, idx) => {
+              const isDone = Boolean(goalsProgress[idx]);
+              return (
+                <div
+                  key={idx}
+                  className={`chat-goal-pill ${isDone ? "chat-goal-pill--done" : ""}`}
+                >
+                  <span className="chat-goal-pill__check">
+                    {isDone ? "✓" : "○"}
+                  </span>
+                  <span className="chat-goal-pill__text">{g}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Alerta de IA desabilitada */}
       {aiDisabled && (
@@ -153,6 +211,46 @@ export default function ChatView({
           </svg>
         </button>
       </div>
+
+      {/* Modal / Card comemorativo ao atingir todas as metas */}
+      {showCompletionModal && (
+        <div className="chat-goals-modal-overlay" role="dialog" aria-modal="true">
+          <div className="chat-goals-modal">
+            <div className="chat-goals-modal__icon" aria-hidden="true">🎉</div>
+            <h3 className="chat-goals-modal__title">Todas as metas concluídas!</h3>
+            <p className="chat-goals-modal__subtitle">
+              Você conseguiu extrair todas as informações da conversa:
+            </p>
+            <ul className="chat-goals-modal__list" role="list">
+              {goals.map((g, idx) => (
+                <li key={idx} className="chat-goals-modal__item">
+                  <span className="chat-goals-modal__check" aria-hidden="true">✓</span>
+                  <span>{g}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="chat-goals-modal__question">
+              Deseja continuar conversando em inglês ou encerrar o chat?
+            </p>
+            <div className="chat-goals-modal__actions">
+              <button
+                type="button"
+                className="btn btn--secondary chat-goals-modal__btn"
+                onClick={() => setDismissedPrompt(true)}
+              >
+                Continuar conversando
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary chat-goals-modal__btn"
+                onClick={handleEndChat}
+              >
+                Encerrar o chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

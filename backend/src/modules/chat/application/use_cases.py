@@ -10,6 +10,7 @@ import logging
 from modules.chat.application.dto import (
     AbandonConversationCommand,
     ChatStatusResult,
+    CompleteConversationCommand,
     ConversationPage,
     CreateConversationCommand,
     GetTurnsQuery,
@@ -27,6 +28,7 @@ from modules.chat.domain.entities import (
     ConversationMode,
     ConversationStatus,
     ConversationTurn,
+    GoalStatus,
 )
 from modules.chat.domain.errors import ChatAIUnavailable
 from modules.chat.domain.ports import (
@@ -101,8 +103,25 @@ class CreateConversation:
             level=level,
             topic=command.topic,
             goal=command.goal,
+            goals=command.goals,
         )
         return await self._repo.add_conversation(conversation)
+
+
+class CompleteConversation:
+    """Conclui explicitamente uma conversa ativa."""
+
+    def __init__(self, repo: ConversationRepository) -> None:
+        self._repo = repo
+
+    async def execute(self, command: CompleteConversationCommand) -> Conversation:
+        conv = await self._repo.get_conversation(
+            command.conversation_id, user_id=command.user_id
+        )
+        if conv is None:
+            raise NotFoundError("Conversa nao encontrada.")
+        conv.complete()
+        return await self._repo.update_conversation(conv)
 
 
 class AbandonConversation:
@@ -192,6 +211,8 @@ class SendTurn:
             level=conv.level.value,
             topic=conv.topic,
             goal=conv.goal,
+            goals=conv.goals,
+            goals_progress=conv.goals_progress,
             history=history,
             evaluate_goal=evaluate_goal,
         )
@@ -222,13 +243,21 @@ class SendTurn:
         conversation_completed = False
         goal_achieved = False
 
-        if result.goal_achieved and conv.mode == ConversationMode.GOAL:
-            conv.complete(goal_achieved=True)
+        if conv.mode == ConversationMode.GOAL:
+            current_progress = list(conv.goals_progress or [False] * len(conv.goals))
+            for i, is_achieved in enumerate(result.goals_progress):
+                if i < len(current_progress) and is_achieved:
+                    current_progress[i] = True
+            conv.goals_progress = current_progress
+
+            if (current_progress and all(current_progress)) or result.goal_achieved:
+                conv.goal_status = GoalStatus.ACHIEVED
+                goal_achieved = True
+
             await self._repo.update_conversation(conv)
-            conversation_completed = True
-            goal_achieved = True
-        elif turn_index >= self._max_turn_limit:
-            conv.complete(goal_achieved=False)
+
+        if turn_index >= self._max_turn_limit:
+            conv.complete(goal_achieved=goal_achieved)
             await self._repo.update_conversation(conv)
             conversation_completed = True
 
@@ -236,6 +265,7 @@ class SendTurn:
             turn=turn,
             conversation_completed=conversation_completed,
             goal_achieved=goal_achieved,
+            goals_progress=conv.goals_progress,
         )
 
 
@@ -274,10 +304,11 @@ class SeedChatData:
 
         goal_entities = [
             ChatGoal.create(
-                label=label,
-                description=description,
-                level_hint=ProficiencyLevel(level_hint),
+                label=lbl,
+                description=desc,
+                level_hint=ProficiencyLevel(lvl),
+                targets=tgts,
             )
-            for label, description, level_hint in command.goals
+            for lbl, desc, lvl, tgts in command.goals
         ]
         await self._goals_repo.seed(goal_entities)

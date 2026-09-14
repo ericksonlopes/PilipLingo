@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from modules.users.api.dependencies import CurrentUserDep
+from modules.vocabulary.application.translate_phrase import TranslatePhrase
 from modules.vocabulary.application.use_cases import (
     BuildStudySession,
     CreateVocabularyEntry,
@@ -19,7 +20,6 @@ from modules.vocabulary.application.use_cases import (
     SaveSessionWords,
     UpdateVocabularyEntry,
 )
-from modules.vocabulary.application.translate_phrase import TranslatePhrase
 from modules.vocabulary.domain.ports import (
     PhraseTranslator,
     SentenceGenerator,

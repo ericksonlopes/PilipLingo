@@ -22,10 +22,17 @@ class CreateConversationCommand:
     level: str
     topic: str | None = None
     goal: str | None = None
+    goals: list[str] | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class AbandonConversationCommand:
+    conversation_id: UUID
+    user_id: UUID
+
+
+@dataclass(frozen=True, slots=True)
+class CompleteConversationCommand:
     conversation_id: UUID
     user_id: UUID
 
@@ -70,6 +77,7 @@ class SendTurnResult:
     turn: ConversationTurn
     conversation_completed: bool = False
     goal_achieved: bool = False
+    goals_progress: list[bool] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,4 +101,4 @@ class SeedDataCommand:
     """Comando de inicializacao do seed data."""
 
     topics: list[tuple[str, str, str]] = field(default_factory=list)
-    goals: list[tuple[str, str, str]] = field(default_factory=list)
+    goals: list[tuple[str, str, str, list[str]]] = field(default_factory=list)

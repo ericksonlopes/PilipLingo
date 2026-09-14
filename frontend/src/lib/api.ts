@@ -319,6 +319,14 @@ export const chatApi = {
     return request<void>(`/chat/conversations/${id}`, { method: "DELETE" });
   },
 
+  /** Conclui uma conversa ativa com sucesso (POST -> 200). */
+  completeConversation(id: string, signal?: AbortSignal) {
+    return request<Conversation>(`/chat/conversations/${id}/complete`, {
+      method: "POST",
+      signal,
+    });
+  },
+
   /** Envia mensagem e recebe resposta da IA. */
   sendTurn(conversationId: string, userMessage: string, signal?: AbortSignal) {
     return request<SendTurnResult>(`/chat/conversations/${conversationId}/turns`, {

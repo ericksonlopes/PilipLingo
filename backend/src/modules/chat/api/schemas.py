@@ -51,6 +51,7 @@ class ChatGoalResponse(BaseModel):
     label: str
     description: str
     level_hint: str
+    targets: list[str] = Field(default_factory=list)
 
     @classmethod
     def from_entity(cls, entity: ChatGoal) -> ChatGoalResponse:
@@ -59,6 +60,7 @@ class ChatGoalResponse(BaseModel):
             label=entity.label,
             description=entity.description,
             level_hint=entity.level_hint.value,
+            targets=entity.targets,
         )
 
 
@@ -70,6 +72,7 @@ class CreateConversationRequest(BaseModel):
     level: str = Field(min_length=2, max_length=2)
     topic: str | None = Field(default=None, max_length=500)
     goal: str | None = Field(default=None, max_length=500)
+    goals: list[str] | None = Field(default=None)
 
 
 class ConversationResponse(BaseModel):
@@ -79,6 +82,8 @@ class ConversationResponse(BaseModel):
     level: str
     topic: str | None
     goal: str | None
+    goals: list[str] = Field(default_factory=list)
+    goals_progress: list[bool] = Field(default_factory=list)
     goal_status: str
     status: str
     created_at: datetime
@@ -93,6 +98,8 @@ class ConversationResponse(BaseModel):
             level=entity.level.value,
             topic=entity.topic,
             goal=entity.goal,
+            goals=entity.goals,
+            goals_progress=entity.goals_progress,
             goal_status=entity.goal_status.value,
             status=entity.status.value,
             created_at=entity.created_at,
@@ -178,6 +185,7 @@ class SendTurnResponse(BaseModel):
     turn: TurnResponse
     conversation_completed: bool
     goal_achieved: bool
+    goals_progress: list[bool] = Field(default_factory=list)
 
     @classmethod
     def from_result(cls, result: SendTurnResult) -> SendTurnResponse:
@@ -185,4 +193,5 @@ class SendTurnResponse(BaseModel):
             turn=TurnResponse.from_entity(result.turn),
             conversation_completed=result.conversation_completed,
             goal_achieved=result.goal_achieved,
+            goals_progress=result.goals_progress,
         )
