@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+.idea
 # Distribution / packaging
 .Python
 build/
@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------- PilipLingo ----------------
+
+# Node / frontend
+node_modules/
+dev-dist/
+.vite/
+
+# Banco SQLite local (recriado com `alembic upgrade head`)
+backend/data/
+
+# O padrao `lib/` acima (artefato de build Python) tambem casaria com
+# frontend/src/lib, que e codigo-fonte. Reincluido aqui.
+!frontend/src/lib/

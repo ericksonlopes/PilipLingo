@@ -1,0 +1,87 @@
+# Ambiente de desenvolvimento: backend FastAPI + frontend Vite com hot reload.
+# Producao: use o profile `prod` (frontend servido por nginx).
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: piliplingo-backend
+    environment:
+      # Quatro barras = caminho absoluto /data/piliplingo.db (volume nomeado).
+      PILIPLINGO_DATABASE_URL: sqlite+aiosqlite:////data/piliplingo.db
+      PILIPLINGO_ENVIRONMENT: local
+      PILIPLINGO_DEBUG: "true"
+      # Libere aqui o IP da maquina se for abrir o app pelo celular.
+      PILIPLINGO_CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      # Chave do Gemini: vem do .env da raiz, nunca do compose versionado.
+      # Sem ela a API responde 503 em /vocabulary/sentences/generate e o app esconde a feature.
+      PILIPLINGO_GOOGLE_API_KEY: ${PILIPLINGO_GOOGLE_API_KEY:-}
+      PILIPLINGO_GEMINI_MODEL: ${PILIPLINGO_GEMINI_MODEL:-gemini-3.5-flash}
+    volumes:
+      # Codigo montado para reload; .venv e data ficam isolados do host.
+      - ./backend/src:/app/src
+      - ./backend/migrations:/app/migrations
+      - ./backend/alembic.ini:/app/alembic.ini
+      - backend-data:/data
+    command:
+      - uvicorn
+      - main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --app-dir
+      - src
+      - --reload
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    container_name: piliplingo-frontend
+    environment:
+      # O browser chama /api e o Vite encaminha para o backend na rede interna.
+      VITE_API_URL: /api/v1
+      VITE_PROXY_TARGET: http://backend:8000
+      VITE_USE_POLLING: "1"
+    volumes:
+      - ./frontend:/app
+      # Mantem o node_modules do container (nao usa o do host).
+      - frontend-node-modules:/app/node_modules
+    ports:
+      # 0.0.0.0 permite abrir pelo celular via IP da maquina na mesma rede.
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # docker compose --profile prod up --build frontend-prod
+  frontend-prod:
+    build:
+      context: ./frontend
+      target: prod
+    container_name: piliplingo-frontend-prod
+    profiles: ["prod"]
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+  frontend-node-modules:

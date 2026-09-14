@@ -1,0 +1,68 @@
+[project]
+name = "piliplingo-backend"
+version = "0.1.0"
+description = "PilipLingo API - backend FastAPI para o app de aprendizado de ingles"
+readme = "README.md"
+authors = [
+    { name = "ericksonlopes", email = "ofc.erickson@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.20.0",
+    "alembic>=1.14.0",
+    "bcrypt>=4.2.0",
+    "deep-translator>=1.11.4",
+    "fastapi>=0.115.0",
+    "langchain-core>=1.0.0",
+    "langchain-google-genai>=4.3.2",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "pyjwt>=2.10.0",
+    "sqlalchemy>=2.0.36",
+    "uvicorn[standard]>=0.32.0",
+]
+
+# Aplicacao, nao biblioteca: nada e empacotado/instalado, `src` entra no sys.path.
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.0",
+    "mypy>=1.13.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+files = ["src"]
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unreachable = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+# Bibliotecas sem stubs completos.
+module = ["alembic.*"]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_typed = true
+init_forbid_extra = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
