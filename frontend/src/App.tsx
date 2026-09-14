@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "./components/AppShell";
 import LevelPicker from "./components/LevelPicker";
 import AuthPage from "./pages/AuthPage";
+import ChatPage from "./pages/ChatPage";
 import HistoryPage from "./pages/HistoryPage";
 import StudyPage from "./pages/StudyPage";
 import { useAuth } from "./hooks/useAuth";
@@ -74,6 +75,7 @@ function AuthenticatedApp({ user, onLogout }: AuthenticatedAppProps) {
         <Routes>
           <Route path="/" element={<StudyPage level={level} />} />
           <Route path="/historico" element={<HistoryPage level={level} />} />
+          <Route path="/chat" element={<ChatPage level={level} />} />
           <Route path="/frases" element={<Navigate to="/" replace />} />
           <Route path="/praticar" element={<Navigate to="/" replace />} />
           <Route path="/vocabulario" element={<Navigate to="/" replace />} />

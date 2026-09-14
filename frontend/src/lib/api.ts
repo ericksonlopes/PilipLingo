@@ -4,6 +4,13 @@ import type {
   AuthCredentials,
   AuthResult,
   AuthUser,
+  ChatGoal,
+  ChatStatus,
+  ChatTopic,
+  Conversation,
+  ConversationPage,
+  ConversationTurn,
+  CreateConversationInput,
   CreateVocabularyEntryInput,
   ExerciseMode,
   GeneratedSentencesResult,
@@ -11,6 +18,7 @@ import type {
   ProficiencyLevel,
   ReviewGrade,
   ReviewResult,
+  SendTurnResult,
   SentenceValidationResponse,
   StudyHistoryPage,
   StudyOptions,
@@ -253,6 +261,67 @@ export const vocabularyApi = {
         body: JSON.stringify({ sentence, focus_term: focusTerm }),
         signal,
       },
+    );
+  },
+};
+
+export interface ListConversationsParams {
+  limit?: number;
+  offset?: number;
+  status?: string;
+  signal?: AbortSignal;
+}
+
+export const chatApi = {
+  /** Verifica se o servico de IA do chat esta disponivel. */
+  status(signal?: AbortSignal) {
+    return request<ChatStatus>("/chat/status", { signal });
+  },
+
+  /** Lista topicos pre-definidos. */
+  topics(signal?: AbortSignal) {
+    return request<ChatTopic[]>("/chat/topics", { signal });
+  },
+
+  /** Lista metas pre-definidas. */
+  goals(signal?: AbortSignal) {
+    return request<ChatGoal[]>("/chat/goals", { signal });
+  },
+
+  /** Cria uma nova conversa. */
+  createConversation(input: CreateConversationInput) {
+    return request<Conversation>("/chat/conversations", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  /** Lista conversas do usuario com paginacao e filtro opcional de status. */
+  listConversations({ limit = 20, offset = 0, status, signal }: ListConversationsParams = {}) {
+    const query = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (status) query.set("status", status);
+    return request<ConversationPage>(`/chat/conversations?${query.toString()}`, { signal });
+  },
+
+  /** Abandona uma conversa ativa (DELETE -> 204). */
+  deleteConversation(id: string) {
+    return request<void>(`/chat/conversations/${id}`, { method: "DELETE" });
+  },
+
+  /** Envia mensagem e recebe resposta da IA. */
+  sendTurn(conversationId: string, userMessage: string, signal?: AbortSignal) {
+    return request<SendTurnResult>(`/chat/conversations/${conversationId}/turns`, {
+      method: "POST",
+      body: JSON.stringify({ user_message: userMessage }),
+      signal,
+    });
+  },
+
+  /** Lista todos os turnos de uma conversa em ordem crescente. */
+  listTurns(conversationId: string, signal?: AbortSignal) {
+    return request<ConversationTurn[]>(
+      `/chat/conversations/${conversationId}/turns`,
+      { signal },
     );
   },
 };

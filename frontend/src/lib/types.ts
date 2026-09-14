@@ -201,3 +201,87 @@ export interface SentenceValidationResponse {
   reason: "missing_term" | "no_subject_verb" | "agreement_error" | null;
   feedback: string | null;
 }
+
+// ---------- chat ----------
+
+export const CONVERSATION_MODES = ["FREE", "TOPIC", "GOAL"] as const;
+export type ConversationMode = (typeof CONVERSATION_MODES)[number];
+
+export const CONVERSATION_STATUSES = ["active", "completed", "abandoned"] as const;
+export type ConversationStatus = (typeof CONVERSATION_STATUSES)[number];
+
+export const GOAL_STATUSES = ["in_progress", "achieved", "abandoned"] as const;
+export type GoalStatus = (typeof GOAL_STATUSES)[number];
+
+export interface ChatTopic {
+  id: string;
+  label: string;
+  description: string;
+  level_hint: ProficiencyLevel;
+}
+
+export interface ChatGoal {
+  id: string;
+  label: string;
+  description: string;
+  level_hint: ProficiencyLevel;
+}
+
+export interface ChatStatus {
+  enabled: boolean;
+  model: string | null;
+}
+
+export interface Conversation {
+  id: string;
+  user_id: string;
+  mode: ConversationMode;
+  level: ProficiencyLevel;
+  topic: string | null;
+  goal: string | null;
+  goal_status: GoalStatus;
+  status: ConversationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConversationPage {
+  items: Conversation[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface FeedbackCorrection {
+  original: string;
+  corrected: string;
+  explanation: string;
+}
+
+export interface TurnFeedback {
+  corrections: FeedbackCorrection[];
+  suggestion: string | null;
+}
+
+export interface ConversationTurn {
+  id: string;
+  conversation_id: string;
+  turn_index: number;
+  user_message: string;
+  ai_reply: string;
+  feedback: TurnFeedback | null;
+  created_at: string;
+}
+
+export interface SendTurnResult {
+  turn: ConversationTurn;
+  conversation_completed: boolean;
+  goal_achieved: boolean;
+}
+
+export interface CreateConversationInput {
+  mode: ConversationMode;
+  level: ProficiencyLevel;
+  topic?: string | null;
+  goal?: string | null;
+}

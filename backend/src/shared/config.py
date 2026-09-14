@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     # Teto de frases por requisicao: a geracao custa dinheiro por chamada.
     sentences_max_per_request: int = Field(default=5, ge=1, le=10)
 
+    # ----- Chat com IA (Gemini) -----
+    # GEMINI_API_KEY e o mesmo google_api_key acima; reutilizamos a mesma chave.
+    # Modelo e timeout independentes da geracao de frases do vocabulario.
+    chat_ai_model: str = "gemini-3.6-flash"
+    chat_ai_timeout: float = Field(default=30.0, gt=0)
+    # Maximo de turnos por conversa antes de encerrar automaticamente.
+    chat_max_turn_limit: int = Field(default=40, ge=1, le=200)
+
     # ----- Autenticacao (JWT assinado + bcrypt) -----
     # Chave usada para assinar os tokens. TROQUE em producao (PILIPLINGO_JWT_SECRET).
     # >= 32 bytes: comprimento minimo recomendado para HS256 (RFC 7518).
