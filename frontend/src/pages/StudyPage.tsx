@@ -263,6 +263,8 @@ export default function StudyPage({ level }: StudyPageProps) {
         selectedTheme={selectedTheme}
         sessionLimit={sessionLimit}
         onToggleMode={toggleMode}
+        onSelectAllModes={() => setSelectedModes(options?.modes.map((m) => m.mode) ?? [])}
+        onClearModes={() => setSelectedModes([])}
         onThemeChange={setSelectedTheme}
         onSessionLimitChange={setSessionLimit}
         onRetryLoad={() => setOptionsReloadToken((t) => t + 1)}
@@ -305,24 +307,70 @@ export default function StudyPage({ level }: StudyPageProps) {
   }
 
   if (isFinished || current === null) {
+    const activeThemeLabel =
+      options?.themes.find((t) => t.theme === selectedTheme)?.label ??
+      selectedTheme ??
+      "Tema surpresa / variado";
+
     return (
       <section className="page">
-        <div className="empty">
-          <p className="empty__title">Sessão concluída</p>
-          <p className="empty__text">
-            {completed} {completed === 1 ? "exercício" : "exercícios"} fechados. Os cards
-            voltam nas datas que você escolheu.
+        <div className="study-completed">
+          <div className="study-completed__badge" aria-hidden="true">
+            🎉
+          </div>
+          <h2 className="study-completed__title">Sessão concluída!</h2>
+          <p className="study-completed__subtitle">
+            Excelente prática! Você completou sua meta diária de estudos no nível{" "}
+            <strong>{level}</strong>.
           </p>
-          {skipped > 0 ? (
-            <p className="empty__text">
-              {skipped} {skipped === 1 ? "exercício pulado" : "exercícios pulados"}: esses
-              cards não mudaram de agendamento e voltam na próxima sessão.
-            </p>
-          ) : null}
+
+          <div className="study-completed__stats">
+            <div className="study-completed__stat-card">
+              <span className="study-completed__stat-value">{completed}</span>
+              <span className="study-completed__stat-label">
+                {completed === 1 ? "Exercício feito" : "Exercícios feitos"}
+              </span>
+            </div>
+
+            <div className="study-completed__stat-card">
+              <span className="study-completed__stat-value">
+                {skipped > 0 ? skipped : "0"}
+              </span>
+              <span className="study-completed__stat-label">
+                {skipped === 1 ? "Exercício pulado" : "Exercícios pulados"}
+              </span>
+            </div>
+
+            <div className="study-completed__stat-card study-completed__stat-card--wide">
+              <span className="study-completed__stat-sublabel">Tema da prática:</span>
+              <span className="study-completed__stat-text">{activeThemeLabel}</span>
+            </div>
+          </div>
+
+          <p className="study-completed__info">
+            Os cards concluídos foram atualizados com repetição espaçada para maximizar a retenção.
+          </p>
+
+          <div className="study-completed__actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={() => {
+                reset();
+                reload();
+              }}
+            >
+              Estudar novamente ({sessionLimit} exercícios)
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--block"
+              onClick={returnToSetup}
+            >
+              Ajustar formatos e temas
+            </button>
+          </div>
         </div>
-        <button type="button" className="btn btn--primary btn--block" onClick={returnToSetup}>
-          Estudar mais
-        </button>
       </section>
     );
   }

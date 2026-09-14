@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useState } from "react";
 import type { RefObject } from "react";
 
 import type { ExerciseMode, StudyModeOption, StudyOptions } from "../../lib/types";
@@ -122,39 +122,6 @@ function IconCheck() {
   );
 }
 
-function IconX() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function IconSparkle() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-    </svg>
-  );
-}
-
 function IconTheme() {
   return (
     <svg
@@ -269,180 +236,187 @@ function ModeCard({ option, isSelected, onToggle }: ModeCardProps) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Subcomponente: ThemeCombobox — combobox acessível com tema livre   */
+/*  Subcomponente: ThemeSelector — seleção segmentada em 3 abas       */
 /* ------------------------------------------------------------------ */
 
-interface ThemeComboboxProps {
+type ThemeTabMode = "SURPRISE" | "SUGGESTED" | "CUSTOM";
+
+interface ThemeSelectorProps {
   themes: StudyOptions["themes"];
-  value: string | null;           // tema interno (EN) ou string livre
+  value: string | null;
   onChange: (theme: string | null) => void;
 }
 
-/** Retorna o label PT de um tema da lista, ou o valor bruto se for tema livre. */
-function themeToDisplay(value: string | null, themes: StudyOptions["themes"]): string {
-  if (!value) return "";
-  return themes.find((t) => t.theme === value)?.label ?? value;
-}
+function ThemeSelector({ themes, value, onChange }: ThemeSelectorProps) {
+  const suggestedThemes = themes.filter((t) => t.theme !== null);
 
-function ThemeCombobox({ themes, value, onChange }: ThemeComboboxProps) {
-  const inputId = useId();
-  const listId = useId();
+  // Determina o modo inicial a partir do value
+  const initialMode: ThemeTabMode = (() => {
+    if (value === null || value === "") return "SURPRISE";
+    if (suggestedThemes.some((t) => t.theme === value)) return "SUGGESTED";
+    return "CUSTOM";
+  })();
 
-  // Texto visível no input — pode divergir de `value` enquanto o user digita
-  const [inputText, setInputText] = useState(() => themeToDisplay(value, themes));
-  const [open, setOpen] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
+  const [activeTab, setActiveTab] = useState<ThemeTabMode>(initialMode);
+  const [customText, setCustomText] = useState(() => (initialMode === "CUSTOM" ? value ?? "" : ""));
+  const [selectedSuggested, setSelectedSuggested] = useState(() =>
+    initialMode === "SUGGESTED" && value
+      ? value
+      : suggestedThemes[0]?.theme ?? "",
+  );
 
-  // Sincroniza quando o valor muda externamente (ex.: limpar)
-  const displayFromValue = themeToDisplay(value, themes);
-  if (!open && inputText !== displayFromValue) {
-    setInputText(displayFromValue);
-  }
-
-  // Filtra pela busca atual (case-insensitive, label PT ou tema EN)
-  const suggestions = inputText.trim()
-    ? themes.filter(
-        (t) =>
-          t.theme !== null &&
-          (t.label.toLowerCase().includes(inputText.toLowerCase()) ||
-            t.theme.toLowerCase().includes(inputText.toLowerCase())),
-      )
-    : themes.filter((t) => t.theme !== null);
-
-  function commit(theme: string | null, label: string) {
-    onChange(theme);
-    setInputText(label);
-    setOpen(false);
-    setActiveIdx(-1);
-  }
-
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const text = e.target.value;
-    setInputText(text);
-    setOpen(true);
-    setActiveIdx(-1);
-    // Atualiza o valor externo: vazio → null, senão o texto bruto como tema livre
-    onChange(text.trim() === "" ? null : text.trim());
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
-      setOpen(true);
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActiveIdx((i) => Math.max(i - 1, -1));
-    } else if (e.key === "Enter" && activeIdx >= 0 && suggestions[activeIdx]) {
-      e.preventDefault();
-      const s = suggestions[activeIdx];
-      commit(s.theme, s.label);
-    } else if (e.key === "Escape") {
-      setOpen(false);
-      setActiveIdx(-1);
+  function handleTabChange(tab: ThemeTabMode) {
+    setActiveTab(tab);
+    if (tab === "SURPRISE") {
+      onChange(null);
+    } else if (tab === "SUGGESTED") {
+      const themeToUse = selectedSuggested || suggestedThemes[0]?.theme || null;
+      onChange(themeToUse);
+    } else if (tab === "CUSTOM") {
+      onChange(customText.trim() === "" ? null : customText.trim());
     }
   }
 
-  function handleBlur(e: React.FocusEvent) {
-    // Fecha só se o foco saiu para fora do combobox inteiro
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setOpen(false);
-      setActiveIdx(-1);
-    }
+  function handleSuggestedChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value;
+    setSelectedSuggested(val);
+    onChange(val);
   }
 
-  const isCustom = value !== null && value !== "" && !themes.some((t) => t.theme === value);
+  function handleCustomChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const txt = e.target.value;
+    setCustomText(txt);
+    onChange(txt.trim() === "" ? null : txt.trim());
+  }
+
+  function handleClearCustom() {
+    setCustomText("");
+    onChange(null);
+  }
+
+  const activeLabel = (() => {
+    if (activeTab === "SURPRISE" || value === null || value === "") {
+      return "🎲 Tema surpresa (variado)";
+    }
+    if (activeTab === "SUGGESTED") {
+      const found = suggestedThemes.find((t) => t.theme === value);
+      return found ? `📋 ${found.label}` : `📋 ${value}`;
+    }
+    return `✍️ "${customText.trim() || value}"`;
+  })();
 
   return (
-    <div
-      className="theme-combobox"
-      onBlur={handleBlur}
-    >
-      {/* ---- Input ---- */}
-      <div className="theme-input-wrap">
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="text"
-          role="combobox"
-          aria-expanded={open}
-          aria-autocomplete="list"
-          aria-controls={listId}
-          aria-activedescendant={
-            activeIdx >= 0 ? `${listId}-opt-${activeIdx}` : undefined
-          }
-          aria-describedby="theme-hint"
-          className="field__input theme-input"
-          value={inputText}
-          onChange={handleInputChange}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder="Tema surpresa — ou escreva qualquer assunto"
-          autoComplete="off"
-          maxLength={120}
-        />
-        {value !== null && value !== "" && (
-          <button
-            type="button"
-            className="theme-clear-btn"
-            aria-label="Limpar tema"
-            tabIndex={-1}
-            onClick={() => {
-              commit(null, "");
-              inputRef.current?.focus();
-            }}
-          >
-            <IconX />
-          </button>
+    <div className="theme-selector-card">
+      {/* Abas segmentadas */}
+      <div className="theme-segment-tabs" role="tablist" aria-label="Modo de escolha do tema">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "SURPRISE"}
+          className={`theme-segment-tab${activeTab === "SURPRISE" ? " theme-segment-tab--active" : ""}`}
+          onClick={() => handleTabChange("SURPRISE")}
+        >
+          🎲 Surpresa
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "SUGGESTED"}
+          className={`theme-segment-tab${activeTab === "SUGGESTED" ? " theme-segment-tab--active" : ""}`}
+          onClick={() => handleTabChange("SUGGESTED")}
+        >
+          📋 Sugeridos ({suggestedThemes.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "CUSTOM"}
+          className={`theme-segment-tab${activeTab === "CUSTOM" ? " theme-segment-tab--active" : ""}`}
+          onClick={() => handleTabChange("CUSTOM")}
+        >
+          ✍️ Tema livre
+        </button>
+      </div>
+
+      {/* Conteúdo dinâmico da aba */}
+      <div className="theme-segment-content">
+        {activeTab === "SURPRISE" && (
+          <div className="theme-panel theme-panel--surprise">
+            <span className="theme-panel__badge">🎲 Aleatório</span>
+            <p className="theme-panel__desc">
+              A IA sorteará assuntos dinâmicos do dia a dia a cada nova frase para enriquecer seu vocabulário.
+            </p>
+          </div>
+        )}
+
+        {activeTab === "SUGGESTED" && (
+          <div className="theme-panel theme-panel--suggested">
+            <label htmlFor="suggested-theme-select" className="theme-panel__label">
+              Escolha um dos {suggestedThemes.length} temas disponíveis:
+            </label>
+            <div className="theme-select-wrap">
+              <select
+                id="suggested-theme-select"
+                className="field__input theme-select"
+                value={selectedSuggested}
+                onChange={handleSuggestedChange}
+              >
+                {suggestedThemes.map((t) => (
+                  <option key={t.theme!} value={t.theme!}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <span className="theme-select-arrow" aria-hidden="true">▾</span>
+            </div>
+            <p className="theme-panel__desc">
+              Frases focadas em vocabulário e expressões comuns para esta situação.
+            </p>
+          </div>
+        )}
+
+        {activeTab === "CUSTOM" && (
+          <div className="theme-panel theme-panel--custom">
+            <label htmlFor="custom-study-theme" className="theme-panel__label">
+              Escreva qualquer assunto que quer praticar:
+            </label>
+            <div className="theme-custom-wrap">
+              <input
+                id="custom-study-theme"
+                type="text"
+                className="field__input theme-custom-input"
+                placeholder="Ex: Inteligência artificial, Culinária italiana, Viagens..."
+                maxLength={120}
+                value={customText}
+                onChange={handleCustomChange}
+                autoComplete="off"
+              />
+              {customText && (
+                <button
+                  type="button"
+                  className="theme-clear-btn"
+                  onClick={handleClearCustom}
+                  aria-label="Limpar tema digitado"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <div className="theme-panel__custom-footer">
+              <span className="theme-panel__desc">
+                Você pode escrever em português ou inglês.
+              </span>
+              <span className="theme-panel__counter">{customText.length}/120</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* ---- Badge tema livre ---- */}
-      {isCustom && (
-        <span className="theme-custom-badge">
-          <IconSparkle />
-          tema livre
-        </span>
-      )}
-
-      {/* ---- Dropdown de sugestões ---- */}
-      {open && suggestions.length > 0 && (
-        <ul
-          ref={listRef}
-          id={listId}
-          role="listbox"
-          aria-label="Temas disponíveis"
-          className="theme-listbox"
-        >
-          {suggestions.map((s, i) => (
-            <li
-              key={s.theme}
-              id={`${listId}-opt-${i}`}
-              role="option"
-              aria-selected={s.theme === value}
-              className={[
-                "theme-listbox__item",
-                s.theme === value ? "theme-listbox__item--selected" : "",
-                i === activeIdx ? "theme-listbox__item--active" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              onMouseDown={(e) => {
-                // mousedown antes do blur para não fechar antes de registrar o clique
-                e.preventDefault();
-                commit(s.theme, s.label);
-              }}
-            >
-              {s.label}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Resumo do tema ativo */}
+      <div className="theme-active-footer">
+        <span className="theme-active-footer__label">Tema selecionado:</span>
+        <span className="theme-active-footer__value">{activeLabel}</span>
+      </div>
     </div>
   );
 }
@@ -507,6 +481,8 @@ export interface StudySetupProps {
   selectedTheme: string | null;
   sessionLimit: number;
   onToggleMode: (mode: ExerciseMode) => void;
+  onSelectAllModes?: () => void;
+  onClearModes?: () => void;
   onThemeChange: (theme: string | null) => void;
   onSessionLimitChange: (limit: number) => void;
   onRetryLoad: () => void;
@@ -523,12 +499,34 @@ export default function StudySetup({
   selectedTheme,
   sessionLimit,
   onToggleMode,
+  onSelectAllModes,
+  onClearModes,
   onThemeChange,
   onSessionLimitChange,
   onRetryLoad,
   onStart,
 }: StudySetupProps) {
   const canStart = selectedModes.length > 0 && !isLoading;
+
+  function handleSelectAll() {
+    if (onSelectAllModes) {
+      onSelectAllModes();
+    } else if (options) {
+      options.modes.forEach((m) => {
+        if (!selectedModes.includes(m.mode)) onToggleMode(m.mode);
+      });
+    }
+  }
+
+  function handleClearAll() {
+    if (onClearModes) {
+      onClearModes();
+    } else {
+      selectedModes.forEach((m) => onToggleMode(m));
+    }
+  }
+
+  const [isModesExpanded, setIsModesExpanded] = useState(true);
 
   return (
     <section className="page study-setup" aria-busy={isLoading}>
@@ -539,7 +537,7 @@ export default function StudySetup({
           Como você quer estudar?
         </h1>
         <p className="page__meta">
-          Marque os formatos que você quer alternar durante a sessão.
+          Personalize os formatos de exercício e o tema da sua prática diária.
         </p>
       </div>
 
@@ -566,62 +564,141 @@ export default function StudySetup({
           ) : (
             <>
               {/* ---- Modos de exercício ---- */}
-              <fieldset className="field" aria-describedby="study-mode-hint">
-                <legend className="field__label">Formatos de exercício</legend>
-                <div className="mode-card-list">
-                  {options.modes.map((option) => (
-                    <ModeCard
-                      key={option.mode}
-                      option={option}
-                      isSelected={selectedModes.includes(option.mode)}
-                      onToggle={() => onToggleMode(option.mode)}
-                    />
-                  ))}
-                </div>
-                <p
-                  id="study-mode-hint"
-                  className="setup-note"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  {selectedModes.length === 0 ? (
-                    <span className="setup-note--warn">
-                      Marque pelo menos um formato para começar.
+              <fieldset className="field mode-fieldset" aria-describedby="study-mode-hint">
+                <div className="mode-card-header">
+                  <button
+                    type="button"
+                    className="mode-card-header__toggle"
+                    onClick={() => setIsModesExpanded((prev) => !prev)}
+                    aria-expanded={isModesExpanded}
+                  >
+                    <legend className="field__label mode-card-header__title">
+                      Formatos de exercício
+                      <span className="mode-card-header__badge">
+                        {selectedModes.length} de {options.modes.length}
+                      </span>
+                    </legend>
+                    <span
+                      className={`mode-card-header__chevron${
+                        isModesExpanded ? " mode-card-header__chevron--open" : ""
+                      }`}
+                      aria-hidden="true"
+                    >
+                      ▾
                     </span>
-                  ) : (
-                    <>
-                      <span className="setup-note__count">{selectedModes.length}</span>
-                      {selectedModes.length === 1
-                        ? " formato selecionado."
-                        : " formatos selecionados."}
-                    </>
+                  </button>
+
+                  {isModesExpanded && (
+                    <div className="mode-card-header__actions">
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--xs"
+                        onClick={handleSelectAll}
+                        disabled={selectedModes.length === options.modes.length}
+                      >
+                        Selecionar todos
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--xs"
+                        onClick={handleClearAll}
+                        disabled={selectedModes.length === 0}
+                      >
+                        Limpar
+                      </button>
+                    </div>
                   )}
-                </p>
+                </div>
+
+                {!isModesExpanded ? (
+                  <div
+                    className="mode-card-collapsed-summary"
+                    onClick={() => setIsModesExpanded(true)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setIsModesExpanded(true);
+                    }}
+                    aria-label="Formatos recolhidos. Toque para expandir"
+                  >
+                    <div className="mode-card-collapsed-icons">
+                      {selectedModes.map((mode) => (
+                        <span key={mode} className="mode-card-collapsed-icon" title={mode}>
+                          {modeIcon(mode)}
+                        </span>
+                      ))}
+                      {selectedModes.length === 0 && (
+                        <span className="mode-card-collapsed-warn">
+                          Nenhum formato selecionado
+                        </span>
+                      )}
+                    </div>
+                    <span className="mode-card-collapsed-hint">Toque para alterar</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mode-card-list">
+                      {options.modes.map((option) => (
+                        <ModeCard
+                          key={option.mode}
+                          option={option}
+                          isSelected={selectedModes.includes(option.mode)}
+                          onToggle={() => onToggleMode(option.mode)}
+                        />
+                      ))}
+                    </div>
+
+                    <p
+                      id="study-mode-hint"
+                      className="setup-note"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      {selectedModes.length === 0 ? (
+                        <span className="setup-note--warn">
+                          ⚠️ Marque pelo menos um formato para começar o estudo.
+                        </span>
+                      ) : (
+                        <>
+                          <span className="setup-note__count">{selectedModes.length}</span>
+                          {selectedModes.length === 1
+                            ? " formato selecionado."
+                            : ` de ${options.modes.length} formatos selecionados.`}
+                        </>
+                      )}
+                    </p>
+                  </>
+                )}
               </fieldset>
 
               {/* ---- Tema ---- */}
               <div className="field setup-theme-field">
-                <label className="field__label" htmlFor="theme-input">
+                <span className="field__label">
                   <IconTheme />
                   Tema das frases novas
-                </label>
-                <ThemeCombobox
+                </span>
+
+                <ThemeSelector
                   themes={options.themes}
                   value={selectedTheme}
                   onChange={onThemeChange}
                 />
-                <p id="theme-hint" className="setup-note">
-                  Digite qualquer assunto ou escolha da lista. Revisões pendentes
-                  aparecem independentemente do tema.
+                <p className="setup-note">
+                  Cards em repetição espaçada aparecem independentemente do tema selecionado.
                 </p>
               </div>
 
               {/* ---- Quantidade ---- */}
               <div className="field">
-                <span className="field__label">Exercícios por sessão</span>
+                <div className="limit-picker-header">
+                  <span className="field__label">Exercícios por sessão</span>
+                  <span className="limit-picker-estimate">
+                    ~{Math.round(sessionLimit * 0.8)} min estimados
+                  </span>
+                </div>
                 <SessionLimitPicker value={sessionLimit} onChange={onSessionLimitChange} />
                 <p className="setup-note">
-                  Quantidade de exercícios que serão montados para esta sessão.
+                  Quantidade de exercícios que serão montados para esta prática.
                 </p>
               </div>
 
@@ -633,15 +710,19 @@ export default function StudySetup({
                 </p>
               )}
 
-              {/* ---- CTA ---- */}
-              <button
-                type="button"
-                className="btn btn--primary btn--block setup-cta"
-                disabled={!canStart}
-                onClick={onStart}
-              >
-                Começar
-              </button>
+              {/* ---- Rodapé fixo com botão Começar sessão ---- */}
+              <div className="study-setup__footer">
+                <button
+                  type="button"
+                  className="btn btn--primary btn--block study-setup__submit-btn"
+                  disabled={!canStart}
+                  onClick={onStart}
+                >
+                  {selectedModes.length === 0
+                    ? "Selecione pelo menos um formato"
+                    : `Começar sessão (${sessionLimit} exercícios)`}
+                </button>
+              </div>
             </>
           )}
         </>
