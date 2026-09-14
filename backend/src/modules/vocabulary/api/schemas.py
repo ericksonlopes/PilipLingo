@@ -354,7 +354,14 @@ class SaveSessionWordsRequest(BaseModel):
     words: list[str] = Field(
         default_factory=list,
         max_length=100,
-        description="Lista de palavras em ingles (focus_terms) da sessao concluida.",
+        description="Lista de palavras/expressoes em ingles vistas na sessao concluida.",
+    )
+    translations: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Traducoes ja conhecidas por termo (vindas do vocabulario gerado pela IA). "
+            "Termos ausentes aqui sao traduzidos pelo servidor como fallback."
+        ),
     )
 
 

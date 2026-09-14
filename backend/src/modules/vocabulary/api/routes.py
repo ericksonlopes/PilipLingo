@@ -253,7 +253,9 @@ async def save_session_words(
     payload: SaveSessionWordsRequest,
     use_case: SaveSessionWordsDep,
 ) -> SaveSessionWordsResponse:
-    result = await use_case.execute(SaveSessionWordsCommand(words=payload.words))
+    result = await use_case.execute(
+        SaveSessionWordsCommand(words=payload.words, translations=payload.translations)
+    )
     return SaveSessionWordsResponse(saved=result.saved, translated=result.translated)
 
 

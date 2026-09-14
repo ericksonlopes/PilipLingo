@@ -86,8 +86,14 @@ class ReviewStudyCardCommand:
 
 @dataclass(frozen=True, slots=True)
 class SaveSessionWordsCommand:
-    """Palavras vistas numa sessao que devem ser traduzidas e salvas."""
+    """Palavras vistas numa sessao que devem ser traduzidas e salvas.
+
+    `translations` traz as traducoes que o frontend ja possui (vindas do
+    vocabulario gerado pela IA em cada card). Termos sem traducao aqui caem no
+    tradutor externo como fallback.
+    """
     words: list[str] = field(default_factory=list)
+    translations: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

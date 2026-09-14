@@ -236,19 +236,34 @@ export function useStudySession(
     wordsSavedRef.current = version;
 
     // Junta todo o vocabulario de cada card (varias palavras por frase) e cai
-    // no focus_term quando um card antigo nao tem vocabulario.
+    // no focus_term quando um card antigo nao tem vocabulario. Junto vai o mapa
+    // termo -> traducao que a IA ja gerou, para o backend nao depender do
+    // tradutor externo (limitado por rate limit) para preencher o historico.
+    const translations: Record<string, string> = {};
     const words = [
       ...new Set(
         queue.flatMap((ex) => {
           const vocab = ex.card.vocabulary ?? [];
+          for (const item of vocab) {
+            if (item.term && item.translation) {
+              translations[item.term] = item.translation;
+            }
+          }
           const terms = vocab.map((item) => item.term);
-          return terms.length > 0 ? terms : [ex.card.focus_term];
+          if (terms.length > 0) {
+            return terms;
+          }
+          // Card antigo sem vocabulario: usa focus_term e sua traducao, se houver.
+          if (ex.card.focus_term && ex.card.focus_term_translation) {
+            translations[ex.card.focus_term] = ex.card.focus_term_translation;
+          }
+          return [ex.card.focus_term];
         }).filter(Boolean),
       ),
     ];
     if (words.length === 0) return;
 
-    void vocabularyApi.saveSessionWords(words).catch(() => {
+    void vocabularyApi.saveSessionWords(words, translations).catch(() => {
       // Silencioso: nao prejudica a experiencia do aluno.
     });
   }, [isFinished, queue]);

@@ -405,10 +405,40 @@ class SaveSessionWords:
         if not words:
             return SaveSessionWordsResult(saved=0, translated=0)
 
-        logger.info(
-            "[session_words] traduzindo %d palavras unicas via deep-translator", len(words)
-        )
-        translations = await self._translator.translate_many(words)
+        # Traducoes ja conhecidas (vindas do vocabulario gerado pela IA no card),
+        # indexadas por casefold para casar com a deduplicacao acima.
+        provided: dict[str, str] = {}
+        for term, translation in command.translations.items():
+            cleaned_term = term.strip()
+            cleaned_translation = (translation or "").strip()
+            if cleaned_term and cleaned_translation:
+                provided.setdefault(cleaned_term.casefold(), cleaned_translation)
+
+        translations: dict[str, str] = {}
+        missing: list[str] = []
+        for word in words:
+            hit = provided.get(word.casefold())
+            if hit:
+                translations[word] = hit
+            else:
+                missing.append(word)
+
+        # Tradutor externo so para o que faltou. Ele e limitado por rate limit
+        # (Google free tier), entao nunca deve ser o unico caminho: sem o fallback
+        # da IA, uma sessao inteira ficaria sem palavras no historico.
+        if missing:
+            logger.info(
+                "[session_words] %d ja traduzidas pela IA, %d via deep-translator",
+                len(translations), len(missing),
+            )
+            fallback = await self._translator.translate_many(missing)
+            translations.update(fallback)
+        else:
+            logger.info(
+                "[session_words] %d palavras traduzidas pela IA (sem chamada externa)",
+                len(translations),
+            )
+
         translated = len(translations)
 
         # Palavras sem traducao ficam de fora do upsert.

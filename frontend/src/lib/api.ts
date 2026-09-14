@@ -241,11 +241,20 @@ export const vocabularyApi = {
     return request<StudyHistoryPage>(`/vocabulary/study/history?${query.toString()}`, { signal });
   },
 
-  /** Traduz e salva as palavras (focus_terms) de uma sessao concluida. */
-  saveSessionWords(words: string[], signal?: AbortSignal) {
+  /**
+   * Salva as palavras vistas em uma sessao concluida.
+   *
+   * `translations` traz as traducoes que ja temos do vocabulario gerado pela IA;
+   * o servidor so recorre ao tradutor externo para termos sem traducao.
+   */
+  saveSessionWords(
+    words: string[],
+    translations: Record<string, string> = {},
+    signal?: AbortSignal,
+  ) {
     return request<{ saved: number; translated: number }>("/vocabulary/study/session-words", {
       method: "POST",
-      body: JSON.stringify({ words }),
+      body: JSON.stringify({ words, translations }),
       signal,
     });
   },

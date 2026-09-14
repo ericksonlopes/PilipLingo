@@ -67,7 +67,9 @@ export default function StudyPage({ level }: StudyPageProps) {
   });
   const [resolution, setResolution] = useState<ExerciseResolution | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [autoAdvance, setAutoAdvance] = useState(true);
+  // Desativado por padrao: o aluno decide quando avancar. Evita pular a correcao
+  // antes de ler o feedback.
+  const [autoAdvance, setAutoAdvance] = useState(false);
   const [isAiEnabled, setIsAiEnabled] = useState(true);
   const setupHeadingRef = useRef<HTMLHeadingElement>(null);
   const exerciseHeadingRef = useRef<HTMLParagraphElement>(null);
