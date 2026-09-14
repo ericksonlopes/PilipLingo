@@ -4,6 +4,7 @@ import { ApiError, vocabularyApi } from "../../lib/api";
 import { detectTypos } from "../../lib/answers";
 import { speak } from "../../lib/speech";
 import type { StudyExercise } from "../../lib/types";
+import ActionBarSlot from "./ActionBarSlot";
 import AudioButton from "./AudioButton";
 
 interface SentenceBuilderProps {
@@ -211,17 +212,19 @@ export default function SentenceBuilder({
 
       {/* Botao de submissao */}
       {!isResolved ? (
-        <div className="exercise__actions">
-          <button
-            type="button"
-            className="btn btn--primary btn--block"
-            onClick={() => void handleSubmit()}
-            disabled={submitDisabled}
-            aria-busy={validating}
-          >
-            {validating ? "Verificando…" : "Verificar"}
-          </button>
-        </div>
+        <ActionBarSlot>
+          <div className="exercise__actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={() => void handleSubmit()}
+              disabled={submitDisabled}
+              aria-busy={validating}
+            >
+              {validating ? "Verificando…" : "Verificar"}
+            </button>
+          </div>
+        </ActionBarSlot>
       ) : null}
 
       {/* Frase de exemplo exibida apos resolucao */}

@@ -15,9 +15,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from modules.vocabulary.domain.entities import (
+    MAX_VOCABULARY_PER_SENTENCE,
     GeneratedSentence,
     SentenceChunk,
     SentenceRequest,
+    SentenceVocabularyItem,
 )
 from modules.vocabulary.domain.errors import SentenceGenerationFailed
 from modules.vocabulary.domain.ports import SentenceGenerator
@@ -50,6 +52,26 @@ Rules:
   Examples: "brush my teeth" -> "escovar os dentes", "wake up" -> "acordar",
   "make my bed" -> "arrumar minha cama", "coffee" -> "cafe".
   If focus_term is a multi-word phrase, translate the whole phrase naturally.
+
+VOCABULARY (field `vocabulary`) - the words and expressions the student should
+learn from this sentence. This is what feeds the "Words" history, so extract
+EVERY meaningful item, not just one:
+- Return 2 to 6 vocabulary items per sentence, IN THE ORDER they appear.
+- Each item has `term` (the English word or expression, e.g. a verb phrase, a
+  phrasal verb, a noun phrase or a single meaningful word) and `translation`
+  (its Brazilian Portuguese translation of the TERM alone, not the full sentence).
+- Prefer meaningful content words and useful expressions. Skip bare function
+  words like articles, single prepositions or auxiliaries ("the", "a", "to",
+  "is") unless they are part of a larger expression.
+- Keep multi-word expressions together as ONE item ("brushed her teeth" ->
+  "escovou os dentes", "took a quick shower" -> "tomou um banho rapido").
+- The `focus_term` should also appear among the vocabulary items.
+- Example for "She brushed her teeth after breakfast today.":
+  vocabulary = [
+    {{"term": "brushed her teeth", "translation": "escovou os dentes"}},
+    {{"term": "after breakfast", "translation": "depois do cafe da manha"}},
+    {{"term": "today", "translation": "hoje"}}
+  ]
 
 STRUCTURAL ANALYSIS (field `chunks`) - this is what teaches the student how the
 sentence is built, so it is as important as the sentence itself:
@@ -87,6 +109,15 @@ class _ChunkItem(BaseModel):
     explanation: str = Field(description="Why it is used, in Brazilian Portuguese, max 18 words.")
 
 
+class _VocabularyItem(BaseModel):
+    """Um item de vocabulario extraido da frase."""
+
+    term: str = Field(description="An English word or expression from the sentence.")
+    translation: str = Field(
+        description="Brazilian Portuguese translation of the term alone, not the full sentence."
+    )
+
+
 class _SentenceItem(BaseModel):
     """Formato estruturado exigido do modelo."""
 
@@ -107,6 +138,10 @@ class _SentenceItem(BaseModel):
     chunks: list[_ChunkItem] = Field(
         default_factory=list,
         description="The sentence split into 2-6 ordered grammatical blocks.",
+    )
+    vocabulary: list[_VocabularyItem] = Field(
+        default_factory=list,
+        description="2-6 vocabulary items (word/expression + translation) from the sentence.",
     )
 
 
@@ -188,6 +223,7 @@ class GeminiSentenceGenerator(SentenceGenerator):
                 continue
             text = item.text.strip()
             chunks = cls._build_chunks(item.chunks, sentence=text)
+            vocabulary = cls._build_vocabulary(item.vocabulary)
             sentences.append(
                 GeneratedSentence(
                     text=text,
@@ -198,12 +234,14 @@ class GeminiSentenceGenerator(SentenceGenerator):
                         (item.focus_term_translation or "").strip() or None
                     ),
                     chunks=chunks,
+                    vocabulary=vocabulary,
                 )
             )
             logger.debug(
-                "[gemini] frase aceita | focus=%r chunks=%d texto=%r",
+                "[gemini] frase aceita | focus=%r chunks=%d vocab=%d texto=%r",
                 (item.focus_term or "").strip() or None,
                 len(chunks),
+                len(vocabulary),
                 text[:60],
             )
 
@@ -216,6 +254,32 @@ class GeminiSentenceGenerator(SentenceGenerator):
             len(result.sentences),
         )
         return sentences
+
+    @staticmethod
+    def _build_vocabulary(items: list[_VocabularyItem]) -> list[SentenceVocabularyItem]:
+        """Converte os itens de vocabulario da IA, deduplicando por termo.
+
+        Descarta itens invalidos individualmente (term/translation vazios ou longos
+        demais) em vez de derrubar a frase inteira: uma frase sem vocabulario ainda
+        cai no fallback do focus_term no historico.
+        """
+        vocabulary: list[SentenceVocabularyItem] = []
+        seen: set[str] = set()
+        for item in items:
+            key = (item.term or "").strip().casefold()
+            if not key or key in seen:
+                continue
+            try:
+                vocabulary.append(
+                    SentenceVocabularyItem.create(term=item.term, translation=item.translation)
+                )
+            except ValidationError as cause:
+                logger.info("[gemini] item de vocabulario descartado: %s", cause.message)
+                continue
+            seen.add(key)
+            if len(vocabulary) >= MAX_VOCABULARY_PER_SENTENCE:
+                break
+        return vocabulary
 
     @staticmethod
     def _build_chunks(items: list[_ChunkItem], *, sentence: str) -> list[SentenceChunk]:

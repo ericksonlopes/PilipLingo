@@ -235,8 +235,16 @@ export function useStudySession(
     if (wordsSavedRef.current === version) return; // ja enviou nesta versao
     wordsSavedRef.current = version;
 
+    // Junta todo o vocabulario de cada card (varias palavras por frase) e cai
+    // no focus_term quando um card antigo nao tem vocabulario.
     const words = [
-      ...new Set(queue.map((ex) => ex.card.focus_term).filter(Boolean)),
+      ...new Set(
+        queue.flatMap((ex) => {
+          const vocab = ex.card.vocabulary ?? [];
+          const terms = vocab.map((item) => item.term);
+          return terms.length > 0 ? terms : [ex.card.focus_term];
+        }).filter(Boolean),
+      ),
     ];
     if (words.length === 0) return;
 

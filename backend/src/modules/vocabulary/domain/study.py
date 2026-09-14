@@ -24,6 +24,7 @@ from modules.vocabulary.domain.entities import (
     MAX_TRANSLATION_LENGTH,
     GeneratedSentence,
     SentenceChunk,
+    SentenceVocabularyItem,
 )
 from shared.domain.proficiency import ProficiencyLevel
 from shared.errors import ValidationError
@@ -188,6 +189,7 @@ class StudyCard:
     level: ProficiencyLevel
     theme: str
     chunks: list[SentenceChunk]
+    vocabulary: list[SentenceVocabularyItem]
     repetitions: int
     lapses: int
     ease_factor: float
@@ -211,6 +213,7 @@ class StudyCard:
         focus_term: str | None = None,
         focus_term_translation: str | None = None,
         chunks: list[SentenceChunk] | None = None,
+        vocabulary: list[SentenceVocabularyItem] | None = None,
         now: datetime | None = None,
     ) -> StudyCard:
         """Fabrica que valida a frase e deixa o card vencido para hoje."""
@@ -232,6 +235,7 @@ class StudyCard:
             level=level,
             theme=_clean(theme, field_name="theme", max_length=MAX_TOPIC_LENGTH),
             chunks=list(chunks or []),
+            vocabulary=list(vocabulary or []),
             repetitions=0,
             lapses=0,
             ease_factor=DEFAULT_EASE_FACTOR,
@@ -259,6 +263,7 @@ class StudyCard:
             focus_term=sentence.focus_term,
             focus_term_translation=sentence.focus_term_translation,
             chunks=list(sentence.chunks),
+            vocabulary=list(sentence.vocabulary),
             now=now,
         )
 

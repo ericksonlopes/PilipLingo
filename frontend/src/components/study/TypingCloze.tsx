@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { isCloseAnswer, isExactAnswer } from "../../lib/answers";
 import type { StudyExercise } from "../../lib/types";
+import ActionBarSlot from "./ActionBarSlot";
 import AudioButton from "./AudioButton";
 
 interface TypingClozeProps {
@@ -17,7 +18,11 @@ export default function TypingCloze({ exercise, isResolved, onResolve }: TypingC
   const [value, setValue] = useState("");
   const [hintsUsed, setHintsUsed] = useState(0);
   const [before, after] = splitPrompt(exercise.prompt);
-  const wasCorrect = hintsUsed === 0 && isExactAnswer(value, exercise.answer);
+  // O acerto reflete o texto que esta na tela: se o aluno digitou a resposta
+  // exata, e acerto — mesmo que tenha pedido dica. Antes, `hintsUsed === 0`
+  // travava `wasCorrect` em false e mostrava "Era X" em vermelho com a resposta
+  // certa preenchida, um feedback contraditorio.
+  const wasCorrect = isExactAnswer(value, exercise.answer);
   const wasClose = !wasCorrect && isCloseAnswer(value, exercise.answer);
 
   function check() {
@@ -27,6 +32,9 @@ export default function TypingCloze({ exercise, isResolved, onResolve }: TypingC
   }
 
   function revealNextLetter() {
+    if (value.length >= exercise.answer.length) {
+      return;
+    }
     const next = exercise.answer.slice(0, value.length + 1);
     setValue(next);
     setHintsUsed((n) => n + 1);
@@ -78,43 +86,51 @@ export default function TypingCloze({ exercise, isResolved, onResolve }: TypingC
           <AudioButton text={exercise.card.sentence} label="Ouvir a frase" />
         </div>
       ) : (
-        <div className="exercise__actions">
-          <button
-            type="button"
-            className="btn btn--ghost btn--hint"
-            onClick={revealNextLetter}
-            disabled={hintDone}
-            aria-label="Dica: revelar próxima letra"
-            title="Dica"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="16" height="16">
-              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
-              <path
-                d="M12 17v-1M12 13.5c0-1.5 2-2 2-3.5a2 2 0 1 0-4 0"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-            {hintsUsed > 0 ? (
-              <span className="btn__hint-progress">
-                {value.length}/{exercise.answer.length}
-              </span>
-            ) : (
-              "Dica"
-            )}
-          </button>
+        <>
+          {/* Dica fica no card, junto do conteudo do exercicio. */}
+          <div className="exercise__actions exercise__actions--inline">
+            <button
+              type="button"
+              className="btn btn--ghost btn--hint"
+              onClick={revealNextLetter}
+              disabled={hintDone}
+              aria-label="Dica: revelar próxima letra"
+              title="Dica"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" width="16" height="16">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                <path
+                  d="M12 17v-1M12 13.5c0-1.5 2-2 2-3.5a2 2 0 1 0-4 0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {hintsUsed > 0 ? (
+                <span className="btn__hint-progress">
+                  {value.length}/{exercise.answer.length}
+                </span>
+              ) : (
+                "Dica"
+              )}
+            </button>
+          </div>
 
-          <button
-            type="button"
-            className="btn btn--primary btn--block"
-            onClick={check}
-            disabled={!value.trim()}
-          >
-            Verificar
-          </button>
-        </div>
+          {/* Verificar (acao primaria) vai para a barra fixa do rodape. */}
+          <ActionBarSlot>
+            <div className="exercise__actions">
+              <button
+                type="button"
+                className="btn btn--primary btn--block"
+                onClick={check}
+                disabled={!value.trim()}
+              >
+                Verificar
+              </button>
+            </div>
+          </ActionBarSlot>
+        </>
       )}
     </div>
   );

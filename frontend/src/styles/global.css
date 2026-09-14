@@ -175,6 +175,12 @@ button {
   align-items: center;
 }
 
+/* A sessao de estudo ocupa toda a altura util para que a barra de acoes
+ * (.study-actions) possa ancorar no rodape via margin-top: auto + sticky. */
+.page--study {
+  min-height: calc(100dvh - var(--app-header-height) - var(--tab-bar-height) - var(--safe-bottom) - 40px);
+}
+
 .page__meta {
   margin: 0;
   color: var(--text-muted);
@@ -1040,6 +1046,16 @@ button {
   flex: 1;
 }
 
+/* Acoes secundarias que ficam no card (Dica, Limpar): compactas e alinhadas a
+ * esquerda, sem esticar como a acao primaria da barra fixa. */
+.exercise__actions--inline {
+  gap: 8px;
+}
+
+.exercise__actions--inline .btn {
+  flex: 0 0 auto;
+}
+
 .cloze {
   display: inline-block;
   min-width: 72px;
@@ -1302,21 +1318,101 @@ button {
 
 /* ---------- avanco da revisao ---------- */
 
-.continue-area {
+/* Barra de acoes ancorada no rodape, logo acima da tab bar. Fica sempre visivel
+ * enquanto o aluno rola o conteudo do exercicio. */
+.study-actions {
+  position: sticky;
+  bottom: calc(var(--tab-bar-height) + var(--safe-bottom) + 8px);
+  z-index: 5;
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  margin-top: auto;
+  padding: 10px 12px calc(10px + var(--safe-bottom));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -8px 24px -12px rgb(0 0 0 / 55%);
 }
 
+/* Slot que recebe os botoes de acao do exercicio (Verificar/Dica) via portal.
+ * Vazio (ex.: apos resolver) ele colapsa e nao adiciona espacamento. */
+.study-actions__slot:empty {
+  display: none;
+}
+
+/* Dentro da barra, a linha de acoes do exercicio ocupa a largura toda. */
+.study-actions__slot .exercise__actions {
+  margin: 0;
+  align-items: stretch;
+}
+
+/* Hierarquia: a acao primaria (Verificar) domina a linha; secundarias
+ * (Dica/Limpar) ficam compactas ao lado, sem esticar. */
+.study-actions__slot .exercise__actions .btn {
+  flex: 0 0 auto;
+}
+
+.study-actions__slot .exercise__actions .btn--primary {
+  flex: 1 1 auto;
+}
+
+/* Acoes primarias da barra (Verificar / Continuar): as maiores e mais altas,
+ * o ponto focal claro da tela conforme a hierarquia de UI. */
+.study-actions__slot .btn--primary,
+.continue-area .btn--primary {
+  min-height: 52px;
+  font-size: 1.02rem;
+}
+
+.continue-area {
+  /* Switch menor ao lado, Continuar ocupando o resto. */
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+/* Toggle secundario: compacto, discreto, subordinado ao Continuar. */
 .continue-area__switch {
-  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
-/* Saida discreta: presente quando o aluno precisa, sem competir com a resposta. */
+.continue-area__switch input {
+  width: 18px;
+  height: 18px;
+}
+
+/* No layout lado a lado, o Continuar nao deve esticar a 100% do grid track. */
+.continue-area .btn--block {
+  width: auto;
+}
+
+/* Saida terciaria: um "link" discreto, o menor elemento da barra, para nao
+ * competir com as acoes primarias nem convidar ao toque acidental. */
 .skip {
+  justify-self: center;
+  width: auto;
+  min-height: 30px;
+  padding: 0 12px;
+  border-color: transparent;
   color: var(--text-muted);
+  font-size: 0.8rem;
   font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+}
+
+.skip:hover:not(:disabled) {
+  color: var(--text);
 }
 
 /* ---------- sentence builder ---------- */

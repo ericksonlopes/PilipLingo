@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTypingPreference } from "../../hooks/useTypingPreference";
 import { isCloseAnswer, isExactAnswer } from "../../lib/answers";
 import type { StudyExercise } from "../../lib/types";
+import ActionBarSlot from "./ActionBarSlot";
 import AudioButton from "./AudioButton";
 
 interface BlockAssemblyProps {
@@ -120,16 +121,18 @@ function TypingAnswer({ exercise, isResolved, onResolve }: BlockAssemblyProps) {
           <AudioButton text={exercise.card.sentence} label="Ouvir a frase" />
         </div>
       ) : (
-        <div className="exercise__actions">
-          <button
-            type="button"
-            className="btn btn--primary btn--block"
-            onClick={check}
-            disabled={!value.trim()}
-          >
-            Verificar
-          </button>
-        </div>
+        <ActionBarSlot>
+          <div className="exercise__actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--block"
+              onClick={check}
+              disabled={!value.trim()}
+            >
+              Verificar
+            </button>
+          </div>
+        </ActionBarSlot>
       )}
     </>
   );
@@ -191,24 +194,33 @@ function BlocksAnswer({ exercise, isResolved, onResolve }: BlockAssemblyProps) {
           <AudioButton text={exercise.card.sentence} label="Ouvir a frase" />
         </div>
       ) : (
-        <div className="exercise__actions">
-          <button
-            type="button"
-            className="btn btn--ghost"
-            onClick={() => setPicked([])}
-            disabled={picked.length === 0}
-          >
-            Limpar
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => onResolve(wasCorrect)}
-            disabled={available.length > 0}
-          >
-            Verificar
-          </button>
-        </div>
+        <>
+          {/* Limpar fica no card, junto dos blocos. */}
+          <div className="exercise__actions exercise__actions--inline">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => setPicked([])}
+              disabled={picked.length === 0}
+            >
+              Limpar
+            </button>
+          </div>
+
+          {/* Verificar (acao primaria) vai para a barra fixa do rodape. */}
+          <ActionBarSlot>
+            <div className="exercise__actions">
+              <button
+                type="button"
+                className="btn btn--primary btn--block"
+                onClick={() => onResolve(wasCorrect)}
+                disabled={available.length > 0}
+              >
+                Verificar
+              </button>
+            </div>
+          </ActionBarSlot>
+        </>
       )}
     </>
   );

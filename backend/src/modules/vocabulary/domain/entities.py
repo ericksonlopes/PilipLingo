@@ -22,6 +22,10 @@ MAX_CHUNK_EXPLANATION_LENGTH = 280
 # Uma frase util para estudo nao passa disso; protege contra resposta degenerada da IA.
 MAX_CHUNKS_PER_SENTENCE = 12
 
+# Teto de itens de vocabulario extraidos de uma unica frase. Protege contra
+# resposta degenerada da IA que tentaria transformar cada palavra em um item.
+MAX_VOCABULARY_PER_SENTENCE = 8
+
 
 __all__ = [
     "MAX_CHUNKS_PER_SENTENCE",
@@ -33,10 +37,12 @@ __all__ = [
     "MAX_TERM_LENGTH",
     "MAX_TOPIC_LENGTH",
     "MAX_TRANSLATION_LENGTH",
+    "MAX_VOCABULARY_PER_SENTENCE",
     "GeneratedSentence",
     "ProficiencyLevel",
     "SentenceChunk",
     "SentenceRequest",
+    "SentenceVocabularyItem",
     "VocabularyEntry",
 ]
 
@@ -173,6 +179,38 @@ def _validate_chunks(chunks: list[SentenceChunk]) -> None:
 
 
 @dataclass(frozen=True, slots=True)
+class SentenceVocabularyItem:
+    """Uma palavra ou expressao da frase com a traducao em portugues.
+
+    Diferente de `SentenceChunk` (analise gramatical estrutural), este e um item
+    de vocabulario pronto para ir ao historico "Palavras": ex.: term="brushed her
+    teeth", translation="escovou os dentes". Uma frase gera varios destes.
+    """
+
+    term: str
+    translation: str
+
+    @classmethod
+    def create(cls, *, term: str, translation: str) -> SentenceVocabularyItem:
+        """Fabrica que normaliza e valida os limites de cada campo."""
+        return cls(
+            term=_clean(term, field_name="vocabulary.term", max_length=MAX_TERM_LENGTH),
+            translation=_clean(
+                translation,
+                field_name="vocabulary.translation",
+                max_length=MAX_TRANSLATION_LENGTH,
+            ),
+        )
+
+
+def _validate_vocabulary(vocabulary: list[SentenceVocabularyItem]) -> None:
+    if len(vocabulary) > MAX_VOCABULARY_PER_SENTENCE:
+        raise ValidationError(
+            f"Uma frase nao pode ter mais de {MAX_VOCABULARY_PER_SENTENCE} itens de vocabulario."
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class GeneratedSentence:
     """Uma frase de exemplo em ingles com traducao e analise estrutural."""
 
@@ -186,6 +224,9 @@ class GeneratedSentence:
     # Vazio quando a IA nao devolveu analise utilizavel: a frase ainda serve para
     # estudar, so nao tem o "Entender Estrutura".
     chunks: list[SentenceChunk] = field(default_factory=list)
+    # Itens de vocabulario da frase (varias palavras/expressoes com traducao).
+    # Alimentam o historico "Palavras". Vazio cai no fallback do focus_term.
+    vocabulary: list[SentenceVocabularyItem] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.text.strip():
@@ -193,6 +234,7 @@ class GeneratedSentence:
         if not self.translation.strip():
             raise ValidationError("A traducao da frase gerada nao pode ser vazia.")
         _validate_chunks(self.chunks)
+        _validate_vocabulary(self.vocabulary)
 
 
 @dataclass(frozen=True, slots=True)

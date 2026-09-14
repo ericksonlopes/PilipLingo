@@ -68,12 +68,19 @@ export interface SentenceChunk {
   explanation: string;
 }
 
+/** Um item de vocabulario da frase (palavra/expressao + traducao). */
+export interface SentenceVocabulary {
+  term: string;
+  translation: string;
+}
+
 export interface GeneratedSentence {
   text: string;
   translation: string;
   level: ProficiencyLevel;
   focus_term: string | null;
   chunks: SentenceChunk[];
+  vocabulary: SentenceVocabulary[];
 }
 
 export interface GenerateSentencesInput {
@@ -137,6 +144,7 @@ export interface StudyCard {
   level: ProficiencyLevel;
   theme: string;
   sentence_chunks: SentenceChunk[];
+  vocabulary: SentenceVocabulary[];
   repetitions: number;
   lapses: number;
   ease_factor: number;

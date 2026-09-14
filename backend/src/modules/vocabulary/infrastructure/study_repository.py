@@ -15,7 +15,7 @@ from modules.vocabulary.infrastructure.mappers import (
     study_card_to_domain,
     study_card_to_model,
 )
-from modules.vocabulary.infrastructure.models import StudyCardModel
+from modules.vocabulary.infrastructure.models import SeenWordModel, StudyCardModel
 from shared.domain.proficiency import ProficiencyLevel
 
 
@@ -146,50 +146,26 @@ class SqlAlchemyStudyCardRepository(StudyCardRepository):
         limit: int = 50,
         offset: int = 0,
     ) -> list[tuple[str, str]]:
-        """Palavras-alvo unicas com a traducao do card revisado mais recentemente."""
-        # Subconsulta: para cada focus_term, pega o reviewed_at mais recente.
-        latest = (
-            select(
-                StudyCardModel.focus_term,
-                func.max(StudyCardModel.reviewed_at).label("last_seen"),
-            )
-            .where(
-                StudyCardModel.user_id == self._user_id,
-                StudyCardModel.reviewed_at.is_not(None),
-            )
-            .group_by(StudyCardModel.focus_term)
-            .subquery()
-        )
-        # Join para pegar a traducao do TERMO (focus_term_translation) do card mais recente.
-        # Se o campo for NULL (card antigo), cai de volta na traducao da frase.
+        """Palavras vistas pelo usuario, mais recentes primeiro.
+
+        Le da tabela `seen_words`, que guarda VARIAS palavras por frase (todo o
+        vocabulario de cada sessao), em vez do unico focus_term por card. Assim o
+        historico "Palavras" mostra cada palavra praticada, nao uma por frase.
+        """
         stmt = (
-            select(
-                StudyCardModel.focus_term,
-                func.coalesce(
-                    StudyCardModel.focus_term_translation,
-                    StudyCardModel.translation,
-                ).label("term_translation"),
-            )
-            .join(
-                latest,
-                (StudyCardModel.focus_term == latest.c.focus_term)
-                & (StudyCardModel.reviewed_at == latest.c.last_seen)
-                & (StudyCardModel.user_id == self._user_id),
-            )
-            .order_by(latest.c.last_seen.desc())
+            select(SeenWordModel.word, SeenWordModel.translation)
+            .where(SeenWordModel.user_id == self._user_id)
+            .order_by(SeenWordModel.last_seen_at.desc())
             .limit(limit)
             .offset(offset)
         )
         rows = (await self._session.execute(stmt)).all()
-        return [(row.focus_term, row.term_translation) for row in rows]
+        return [(row.word, row.translation) for row in rows]
 
     async def count_seen_words(self) -> int:
         stmt = (
-            select(func.count(StudyCardModel.focus_term.distinct()))
-            .select_from(StudyCardModel)
-            .where(
-                StudyCardModel.user_id == self._user_id,
-                StudyCardModel.reviewed_at.is_not(None),
-            )
+            select(func.count())
+            .select_from(SeenWordModel)
+            .where(SeenWordModel.user_id == self._user_id)
         )
         return int((await self._session.execute(stmt)).scalar_one())

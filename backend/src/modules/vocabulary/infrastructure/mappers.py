@@ -9,6 +9,7 @@ from uuid import UUID
 from modules.vocabulary.domain.entities import (
     ProficiencyLevel,
     SentenceChunk,
+    SentenceVocabularyItem,
     VocabularyEntry,
 )
 from modules.vocabulary.domain.study import StudyCard
@@ -89,6 +90,27 @@ def chunks_to_domain(raw: object) -> list[SentenceChunk]:
     return chunks
 
 
+def vocabulary_to_json(vocabulary: list[SentenceVocabularyItem]) -> list[dict[str, Any]]:
+    return [{"term": item.term, "translation": item.translation} for item in vocabulary]
+
+
+def vocabulary_to_domain(raw: object) -> list[SentenceVocabularyItem]:
+    """Le a coluna JSON de vocabulario tolerando linha antiga ou payload malformado."""
+    if not isinstance(raw, list):
+        return []
+
+    vocabulary: list[SentenceVocabularyItem] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        term = str(item.get("term") or "").strip()
+        translation = str(item.get("translation") or "").strip()
+        if not term or not translation:
+            continue
+        vocabulary.append(SentenceVocabularyItem(term=term, translation=translation))
+    return vocabulary
+
+
 def study_card_to_domain(model: StudyCardModel) -> StudyCard:
     return StudyCard(
         id=model.id,
@@ -99,6 +121,7 @@ def study_card_to_domain(model: StudyCardModel) -> StudyCard:
         level=ProficiencyLevel(model.level),
         theme=model.theme,
         chunks=chunks_to_domain(model.sentence_chunks),
+        vocabulary=vocabulary_to_domain(model.vocabulary),
         repetitions=model.repetitions,
         lapses=model.lapses,
         ease_factor=model.ease_factor,
@@ -122,6 +145,7 @@ def study_card_to_model(card: StudyCard, *, user_id: UUID) -> StudyCardModel:
         level=card.level.value,
         theme=card.theme,
         sentence_chunks=chunks_to_json(card.chunks),
+        vocabulary=vocabulary_to_json(card.vocabulary),
         repetitions=card.repetitions,
         lapses=card.lapses,
         ease_factor=card.ease_factor,

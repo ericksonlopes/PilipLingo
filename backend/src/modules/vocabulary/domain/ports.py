@@ -181,12 +181,12 @@ class StudyCardRepository(ABC):
         limit: int = 50,
         offset: int = 0,
     ) -> list[tuple[str, str]]:
-        """Palavras-alvo unicas vistas (focus_term, translation do card mais recente).
+        """Palavras vistas (word, translation), mais recentes primeiro.
 
-        Retorna uma lista de tuplas (focus_term, translation) deduplicated por
-        focus_term, ordenadas pela revisao mais recente.
+        Le do registro de palavras vistas, que guarda todo o vocabulario de cada
+        sessao (varias palavras por frase), nao apenas o termo-alvo do card.
         """
 
     @abstractmethod
     async def count_seen_words(self) -> int:
-        """Total de palavras-alvo unicas ja vistas pelo usuario."""
+        """Total de palavras ja vistas pelo usuario."""

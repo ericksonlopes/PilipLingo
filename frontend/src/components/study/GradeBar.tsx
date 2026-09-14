@@ -30,7 +30,7 @@ export default function GradeBar({
           checked={autoAdvance}
           onChange={(event) => onAutoAdvanceChange(event.target.checked)}
         />
-        <span>Avançar automaticamente</span>
+        <span>Automático</span>
       </label>
       <button
         ref={continueButtonRef}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { ACTION_BAR_SLOT_ID } from "../components/study/ActionBarSlot";
 import BlockAssembly from "../components/study/BlockAssembly";
 import ChunkAnalysis from "../components/study/ChunkAnalysis";
 import GradeBar from "../components/study/GradeBar";
@@ -328,7 +329,7 @@ export default function StudyPage({ level }: StudyPageProps) {
   const currentResolution = resolution?.index === index ? resolution : null;
 
   return (
-    <section className="page">
+    <section className="page page--study">
       <div className="study-head">
         <p className="page__meta">
           {index + 1} de {Math.max(total, index + 1)}
@@ -385,9 +386,33 @@ export default function StudyPage({ level }: StudyPageProps) {
         </p>
       ) : null}
 
-      {currentResolution !== null ? (
-        <>
-          <ChunkAnalysis card={current.card} />
+      {currentResolution !== null ? <ChunkAnalysis card={current.card} /> : null}
+
+      {/* Barra de acoes fixa no rodape. O "Pular" fica sempre disponivel; quando o
+          exercicio e resolvido, ele sobe e da lugar a barra de Continuar. O slot
+          recebe os botoes de acao do exercicio (ex.: "Verificar") via portal. */}
+      <div className="study-actions">
+        {/* Alvo do portal: os modos renderizam aqui o "Verificar"/"Dica". */}
+        <div id={ACTION_BAR_SLOT_ID} className="study-actions__slot" />
+
+        {/* Escape para quando responder nao e possivel: microfone sem permissao,
+            sem fone para o ditado, ambiente barulhento. Nao vira nota, entao o card
+            volta como estava em vez de ser marcado como erro. So aparece antes de
+            resolver: uma vez corrigido, a unica acao e "Continuar". */}
+        {currentResolution === null ? (
+          <button
+            type="button"
+            className="btn btn--ghost skip"
+            onClick={() => {
+              stopSpeaking();
+              skip();
+            }}
+          >
+            Pular exercício
+          </button>
+        ) : null}
+
+        {currentResolution !== null ? (
           <GradeBar
             isSaving={isSaving}
             autoAdvance={autoAdvance}
@@ -396,22 +421,8 @@ export default function StudyPage({ level }: StudyPageProps) {
               void continueResolved(index, currentResolution.wasCorrect, true);
             }}
           />
-        </>
-      ) : (
-        // Escape para quando responder nao e possivel: microfone sem permissao,
-        // sem fone para o ditado, ambiente barulhento. Nao vira nota, entao o card
-        // volta como estava em vez de ser marcado como erro.
-        <button
-          type="button"
-          className="btn btn--ghost btn--block skip"
-          onClick={() => {
-            stopSpeaking();
-            skip();
-          }}
-        >
-          Pular este exercício
-        </button>
-      )}
+        ) : null}
+      </div>
     </section>
   );
 }

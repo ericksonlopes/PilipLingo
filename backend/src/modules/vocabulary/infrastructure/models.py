@@ -67,6 +67,10 @@ class StudyCardModel(Base):
     sentence_chunks: Mapped[list[dict[str, Any]]] = mapped_column(
         JSON, nullable=False, default=list
     )
+    # Itens de vocabulario da frase: [{"term": ..., "translation": ...}, ...].
+    # JSON pelo mesmo motivo de sentence_chunks: value object de leitura, sempre
+    # consumido junto do card. Alimenta o historico "Palavras".
+    vocabulary: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
 
     # ----- agendamento (SM-2 simplificado) -----
     repetitions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

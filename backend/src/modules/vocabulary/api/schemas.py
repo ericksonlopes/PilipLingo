@@ -17,6 +17,7 @@ from modules.vocabulary.domain.entities import (
     GeneratedSentence,
     ProficiencyLevel,
     SentenceChunk,
+    SentenceVocabularyItem,
     VocabularyEntry,
 )
 from modules.vocabulary.domain.study import (
@@ -107,6 +108,17 @@ class SentenceChunkResponse(BaseModel):
         return cls(text=chunk.text, role=chunk.role, explanation=chunk.explanation)
 
 
+class SentenceVocabularyResponse(BaseModel):
+    """Um item de vocabulario da frase (palavra/expressao + traducao)."""
+
+    term: str
+    translation: str
+
+    @classmethod
+    def from_entity(cls, item: SentenceVocabularyItem) -> SentenceVocabularyResponse:
+        return cls(term=item.term, translation=item.translation)
+
+
 class SentenceResponse(BaseModel):
     text: str
     translation: str
@@ -114,6 +126,7 @@ class SentenceResponse(BaseModel):
     focus_term: str | None
     # Vazio quando a IA nao devolveu analise reconstruivel (ver gemini_generator).
     chunks: list[SentenceChunkResponse]
+    vocabulary: list[SentenceVocabularyResponse]
 
     @classmethod
     def from_entity(cls, sentence: GeneratedSentence) -> SentenceResponse:
@@ -123,6 +136,9 @@ class SentenceResponse(BaseModel):
             level=sentence.level,
             focus_term=sentence.focus_term,
             chunks=[SentenceChunkResponse.from_entity(chunk) for chunk in sentence.chunks],
+            vocabulary=[
+                SentenceVocabularyResponse.from_entity(item) for item in sentence.vocabulary
+            ],
         )
 
 
@@ -183,6 +199,7 @@ class StudyCardResponse(BaseModel):
     level: ProficiencyLevel
     theme: str
     sentence_chunks: list[SentenceChunkResponse]
+    vocabulary: list[SentenceVocabularyResponse]
     repetitions: int
     lapses: int
     ease_factor: float
@@ -202,6 +219,9 @@ class StudyCardResponse(BaseModel):
             level=card.level,
             theme=card.theme,
             sentence_chunks=[SentenceChunkResponse.from_entity(chunk) for chunk in card.chunks],
+            vocabulary=[
+                SentenceVocabularyResponse.from_entity(item) for item in card.vocabulary
+            ],
             repetitions=card.repetitions,
             lapses=card.lapses,
             ease_factor=card.ease_factor,
