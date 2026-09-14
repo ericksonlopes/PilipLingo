@@ -1290,6 +1290,108 @@ button {
   font-weight: 500;
 }
 
+/* ---------- sentence builder ---------- */
+
+.sentence-builder__textarea {
+  display: block;
+  width: 100%;
+  min-height: 88px; /* altura confortavel para digitar em mobile */
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+  overflow-wrap: anywhere;
+  transition: border-color 0.15s;
+}
+
+.sentence-builder__textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-color: var(--primary);
+}
+
+.sentence-builder__textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Linha do botão de dica */
+.sentence-builder__hint-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sentence-builder__hint-btn {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.sentence-builder__hint-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Box da dica */
+.sentence-builder__hint-box {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
+  animation: hint-in 160ms ease-out;
+}
+
+@keyframes hint-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.sentence-builder__hint-label {
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sentence-builder__hint-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Replay da frase do aluno após resolução */
+.sentence-builder__replay {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+}
+
+.sentence-builder__student-sentence {
+  flex: 1;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 /* ---------- telas maiores ---------- */
 
 @media (min-width: 640px) {

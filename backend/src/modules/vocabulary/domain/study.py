@@ -45,13 +45,14 @@ __all__ = [
 
 
 class ExerciseMode(StrEnum):
-    """As cinco formas de cobrar o mesmo card."""
+    """As seis formas de cobrar o mesmo card."""
 
     TYPING_CLOZE = "TYPING_CLOZE"
     AUDIO_DICTATION = "AUDIO_DICTATION"
     BLOCK_TRANSLATION = "BLOCK_TRANSLATION"
     VOCAB_MATCHING = "VOCAB_MATCHING"
     SPEAKING_PRACTICE = "SPEAKING_PRACTICE"
+    SENTENCE_BUILDER = "SENTENCE_BUILDER"
 
     @property
     def instruction(self) -> str:
@@ -75,6 +76,7 @@ _INSTRUCTIONS: dict[ExerciseMode, str] = {
     ExerciseMode.BLOCK_TRANSLATION: "Traduza para o ingles ordenando os blocos.",
     ExerciseMode.VOCAB_MATCHING: "Ligue cada frase em ingles a sua traducao.",
     ExerciseMode.SPEAKING_PRACTICE: "Ouca e repita a frase em voz alta.",
+    ExerciseMode.SENTENCE_BUILDER: "Escreva uma frase em ingles usando a palavra indicada.",
 }
 
 # Modos que consomem um card so. VOCAB_MATCHING fica fora porque precisa de grupo.
@@ -83,6 +85,7 @@ _SINGLE_CARD_MODES: tuple[ExerciseMode, ...] = (
     ExerciseMode.AUDIO_DICTATION,
     ExerciseMode.BLOCK_TRANSLATION,
     ExerciseMode.SPEAKING_PRACTICE,
+    ExerciseMode.SENTENCE_BUILDER,
 )
 
 MATCHING_MIN_CARDS = 4
@@ -426,6 +429,9 @@ def build_exercise(
 
     if mode is ExerciseMode.SPEAKING_PRACTICE:
         return StudyExercise(mode=mode, card=card, prompt="", answer=card.sentence)
+
+    if mode is ExerciseMode.SENTENCE_BUILDER:
+        return StudyExercise(mode=mode, card=card, prompt=card.focus_term, answer="", blocks=[])
 
     members = list(group or [card])
     return StudyExercise(

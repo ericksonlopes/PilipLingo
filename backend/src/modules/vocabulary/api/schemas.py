@@ -336,3 +336,22 @@ class SaveSessionWordsRequest(BaseModel):
 class SaveSessionWordsResponse(BaseModel):
     saved: int
     translated: int
+
+
+# ---------- sentence builder ----------
+
+class SentenceBuilderValidateRequest(BaseModel):
+    """Payload enviado pelo aluno no modo SENTENCE_BUILDER."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    sentence: str = Field(min_length=1, max_length=500)
+    focus_term: str = Field(min_length=1, max_length=120)
+
+
+class SentenceBuilderValidateResponse(BaseModel):
+    """Resultado da validacao spaCy retornado ao cliente."""
+
+    valid: bool
+    reason: str | None = None
+    feedback: str | None = None

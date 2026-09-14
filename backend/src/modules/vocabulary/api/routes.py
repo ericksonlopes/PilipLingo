@@ -23,6 +23,7 @@ from modules.vocabulary.api.dependencies import (
     ListUseCaseDep,
     ReviewStudyCardDep,
     SaveSessionWordsDep,
+    SentenceValidatorDep,
     StudyHistoryDep,
     UpdateUseCaseDep,
 )
@@ -35,6 +36,8 @@ from modules.vocabulary.api.schemas import (
     ReviewStudyCardResponse,
     SaveSessionWordsRequest,
     SaveSessionWordsResponse,
+    SentenceBuilderValidateRequest,
+    SentenceBuilderValidateResponse,
     StudyHistoryResponse,
     StudyModeOption,
     StudyOptionsResponse,
@@ -68,6 +71,7 @@ _STUDY_MODE_LABELS: dict[ExerciseMode, str] = {
     ExerciseMode.AUDIO_DICTATION: "Ditado",
     ExerciseMode.BLOCK_TRANSLATION: "Ordenar tradução",
     ExerciseMode.SPEAKING_PRACTICE: "Praticar fala",
+    ExerciseMode.SENTENCE_BUILDER: "Criar frase",
 }
 
 
@@ -246,6 +250,24 @@ async def save_session_words(
 ) -> SaveSessionWordsResponse:
     result = await use_case.execute(SaveSessionWordsCommand(words=payload.words))
     return SaveSessionWordsResponse(saved=result.saved, translated=result.translated)
+
+
+@router.post(
+    "/study/sentence-builder/validate",
+    response_model=SentenceBuilderValidateResponse,
+    summary="Valida a frase criada pelo aluno no modo SENTENCE_BUILDER",
+    responses={503: {"description": "Modelo spaCy nao disponivel"}},
+)
+async def validate_sentence_builder(
+    payload: SentenceBuilderValidateRequest,
+    validator: SentenceValidatorDep,
+) -> SentenceBuilderValidateResponse:
+    result = validator.validate(payload.sentence, payload.focus_term)
+    return SentenceBuilderValidateResponse(
+        valid=result.valid,
+        reason=result.reason,
+        feedback=result.feedback,
+    )
 
 
 @router.get(

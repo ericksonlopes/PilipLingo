@@ -11,6 +11,7 @@ import type {
   ProficiencyLevel,
   ReviewGrade,
   ReviewResult,
+  SentenceValidationResponse,
   StudyHistoryPage,
   StudyOptions,
   StudySession,
@@ -237,5 +238,21 @@ export const vocabularyApi = {
       body: JSON.stringify({ words }),
       signal,
     });
+  },
+
+  /** Valida a frase escrita pelo aluno no modo SENTENCE_BUILDER. */
+  validateSentenceBuilder(
+    sentence: string,
+    focusTerm: string,
+    signal?: AbortSignal,
+  ) {
+    return request<SentenceValidationResponse>(
+      "/vocabulary/study/sentence-builder/validate",
+      {
+        method: "POST",
+        body: JSON.stringify({ sentence, focus_term: focusTerm }),
+        signal,
+      },
+    );
   },
 };

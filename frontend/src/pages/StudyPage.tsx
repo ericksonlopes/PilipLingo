@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import BlockAssembly from "../components/study/BlockAssembly";
 import ChunkAnalysis from "../components/study/ChunkAnalysis";
 import GradeBar from "../components/study/GradeBar";
+import SentenceBuilder from "../components/study/SentenceBuilder";
 import SpeakingPractice from "../components/study/SpeakingPractice";
 import StudySetup from "../components/study/StudySetup";
 import TypingCloze from "../components/study/TypingCloze";
@@ -451,6 +452,14 @@ function ExerciseView({
           isResolved={isResolved}
           onResolve={onResolve}
           onRetry={onRetry}
+        />
+      );
+    case "SENTENCE_BUILDER":
+      return (
+        <SentenceBuilder
+          exercise={exercise}
+          isResolved={isResolved}
+          onResolve={onResolve}
         />
       );
   }

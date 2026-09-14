@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from modules.users.api.dependencies import CurrentUserDep
 from modules.vocabulary.application.use_cases import (
@@ -33,6 +33,7 @@ from modules.vocabulary.infrastructure.repository import (
 from modules.vocabulary.infrastructure.seen_words_repository import (
     SqlAlchemySeenWordsRepository,
 )
+from modules.vocabulary.infrastructure.sentence_validator import SentenceValidatorService
 from modules.vocabulary.infrastructure.study_repository import (
     SqlAlchemyStudyCardRepository,
 )
@@ -146,3 +147,11 @@ BuildStudySessionDep = Annotated[BuildStudySession, Depends(get_build_study_sess
 ReviewStudyCardDep = Annotated[ReviewStudyCard, Depends(get_review_study_card_use_case)]
 StudyHistoryDep = Annotated[GetStudyHistory, Depends(get_study_history_use_case)]
 SaveSessionWordsDep = Annotated[SaveSessionWords, Depends(get_save_session_words_use_case)]
+
+
+def get_sentence_validator(request: Request) -> SentenceValidatorService:
+    """Recupera o singleton carregado no lifespan da aplicacao."""
+    return request.app.state.sentence_validator  # type: ignore[no-any-return]
+
+
+SentenceValidatorDep = Annotated[SentenceValidatorService, Depends(get_sentence_validator)]

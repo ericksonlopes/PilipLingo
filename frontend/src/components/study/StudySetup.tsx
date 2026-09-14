@@ -178,6 +178,25 @@ function IconTheme() {
 /*  Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
+function IconSentenceBuilder() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  );
+}
+
 function modeIcon(mode: ExerciseMode) {
   switch (mode) {
     case "TYPING_CLOZE":
@@ -190,6 +209,8 @@ function modeIcon(mode: ExerciseMode) {
       return <IconSpeaking />;
     case "VOCAB_MATCHING":
       return <IconVocab />;
+    case "SENTENCE_BUILDER":
+      return <IconSentenceBuilder />;
   }
 }
 
@@ -205,6 +226,8 @@ function modeDescription(mode: ExerciseMode): string {
       return "Ouça, repita e confira sua pronúncia.";
     case "VOCAB_MATCHING":
       return "Exercício em grupo reservado à compatibilidade com sessões antigas.";
+    case "SENTENCE_BUILDER":
+      return "Escreva uma frase usando a palavra indicada.";
   }
 }
 
@@ -475,7 +498,7 @@ function SetupSkeleton() {
 export const STUDY_SETUP_SESSION_LIMIT_OPTIONS = SESSION_LIMIT_OPTIONS;
 
 export interface StudySetupProps {
-  headingRef?: RefObject<HTMLHeadingElement>;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
   isLoading: boolean;
   error: string | null;
   options: StudyOptions | null;

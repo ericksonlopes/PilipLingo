@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.router import api_router
+from modules.vocabulary.infrastructure.sentence_validator import SentenceValidatorService
 from shared.api.error_handlers import register_error_handlers
 from shared.config import Settings, get_settings
 from shared.database import dispose_engine
@@ -20,6 +21,8 @@ import orm_registry  # noqa: F401,E402  isort:skip
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Carrega o modelo spaCy uma unica vez. Falha ruidosamente se ausente.
+    _app.state.sentence_validator = SentenceValidatorService.load()
     yield
     await dispose_engine()
 

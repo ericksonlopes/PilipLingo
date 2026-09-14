@@ -18,6 +18,11 @@ dependencies = [
     "pydantic>=2.9.0",
     "pydantic-settings>=2.6.0",
     "pyjwt>=2.10.0",
+    "spacy>=3.7.0,<4.0.0",
+    # Modelo spaCy declarado como dependencia direta de URL.
+    # Se a instalacao automatica falhar, rode manualmente:
+    #   uv run python -m spacy download en_core_web_sm
+    "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
     "sqlalchemy>=2.0.36",
     "uvicorn[standard]>=0.32.0",
 ]
@@ -56,6 +61,11 @@ pretty = true
 [[tool.mypy.overrides]]
 # Bibliotecas sem stubs completos.
 module = ["alembic.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# spaCy e o modelo nao distribuem stubs para mypy.
+module = ["spacy.*", "en_core_web_sm.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

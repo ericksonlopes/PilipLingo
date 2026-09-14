@@ -104,6 +104,7 @@ export const EXERCISE_MODES = [
   "BLOCK_TRANSLATION",
   "VOCAB_MATCHING",
   "SPEAKING_PRACTICE",
+  "SENTENCE_BUILDER",
 ] as const;
 
 export type ExerciseMode = (typeof EXERCISE_MODES)[number];
@@ -191,4 +192,12 @@ export interface StudyHistoryPage {
   words_total: number;
   limit: number;
   offset: number;
+}
+
+// ---------- sentence builder ----------
+
+export interface SentenceValidationResponse {
+  valid: boolean;
+  reason: "missing_term" | "no_subject_verb" | "agreement_error" | null;
+  feedback: string | null;
 }
