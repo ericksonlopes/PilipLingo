@@ -1,45 +1,45 @@
-# Checklist de feature no frontend
+# Frontend Feature Checklist
 
-## Contrato com o backend
+## Backend Contract
 
-- [ ] Tipos em `lib/types.ts` batem campo a campo com o schema Pydantic
-- [ ] Campos mantidos em `snake_case` como a API devolve
-- [ ] Metodo adicionado no objeto de API correspondente em `lib/api.ts`
-- [ ] Chamada cancelavel recebe `signal`
-- [ ] Erro tratado via `ApiError` (usa `message`; usa `code`/`status` quando muda a UI)
+- [ ] Types in `lib/types.ts` match Pydantic schema field by field
+- [ ] Preserved `snake_case` naming matching API responses
+- [ ] Method added to corresponding API client object in `lib/api.ts`
+- [ ] Abortable requests accept `signal` parameter
+- [ ] Errors handled via `ApiError` (`message`, `code`, `status`)
 
-## Estados da UI
+## UI States
 
-- [ ] Carregando
-- [ ] Vazio com texto que diz o proximo passo
-- [ ] Erro com `role="alert"` e acao de tentar de novo
-- [ ] Botao de acao desabilitado enquanto a requisicao esta em voo
+- [ ] Loading state
+- [ ] Empty state with clear next-step instruction
+- [ ] Error state with `role="alert"` and retry action
+- [ ] Action buttons disabled during pending network requests
 
-## Mobile
+## Mobile Standards
 
-- [ ] Toques com no minimo 44px (`var(--tap)`)
-- [ ] Nenhum input abaixo de 16px
-- [ ] Safe areas respeitadas em elementos fixos
-- [ ] Sem scroll horizontal em telas de 320px de largura
-- [ ] Texto do usuario com `overflow-wrap: anywhere`
-- [ ] `enterKeyHint` / `autoCapitalize` / `spellCheck` coerentes com o campo
+- [ ] Touch targets minimum 44px (`var(--tap)`)
+- [ ] No input font sizes below 16px
+- [ ] Safe areas respected on fixed/sticky elements
+- [ ] Zero horizontal overflow on 320px screen widths
+- [ ] User-generated text handles long words (`overflow-wrap: anywhere`)
+- [ ] Proper `enterKeyHint`, `autoCapitalize`, and `spellCheck` attributes per field
 
-## Acessibilidade
+## Accessibility
 
-- [ ] Botao so com icone tem `aria-label`
-- [ ] SVG decorativo com `aria-hidden="true"` e `focusable="false"`
-- [ ] Estado de selecao expresso por `aria-pressed` ou `aria-current`
-- [ ] Foco visivel (nao remova o outline)
+- [ ] Icon-only buttons include `aria-label`
+- [ ] Decorative SVGs include `aria-hidden="true"` and `focusable="false"`
+- [ ] Selection state indicated by `aria-pressed` or `aria-current`
+- [ ] Visible focus outlines maintained
 
-## Integracao
+## Integration
 
-- [ ] `<Route>` registrada em `App.tsx`
-- [ ] `TABS` do `AppShell.tsx` atualizado se for secao principal
-- [ ] Classes novas em `global.css` usando os tokens existentes
-- [ ] Feature que depende de config do backend consulta o status e degrada
+- [ ] `<Route>` registered in `App.tsx`
+- [ ] `TABS` array in `AppShell.tsx` updated if adding a primary section
+- [ ] New CSS classes added to `global.css` using existing design tokens
+- [ ] Features with backend dependencies query status and degrade gracefully
 
-## Qualidade
+## Quality Assurance
 
-- [ ] `npm run build` passa (inclui `tsc -b`)
-- [ ] Testado em viewport estreito (DevTools em 360x740)
-- [ ] `frontend/README.md` atualizado se a estrutura mudou
+- [ ] `npm run build` succeeds cleanly (`tsc -b` + Vite build)
+- [ ] Verified on mobile viewport dimensions (e.g. 360x740)
+- [ ] `frontend/README.md` updated if directory structure or setup changed

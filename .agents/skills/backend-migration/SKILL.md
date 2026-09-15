@@ -1,75 +1,63 @@
 ---
 name: backend-migration
-description: Cria e aplica migrations Alembic no backend do PilipLingo (SQLAlchemy async + SQLite). Use ao adicionar ou alterar tabela, coluna, indice ou constraint, ou quando o alembic acusar drift de schema.
+description: Creates and applies Alembic migrations in PilipLingo backend (SQLAlchemy async + SQLite). Use when adding or modifying tables, columns, indexes, or constraints, or when Alembic detects schema drift.
 metadata:
   author: PilipLingo
   version: 1.1.0
 ---
 
-# Migrations com Alembic
+# Migrations with Alembic
 
-Rode tudo de dentro de `backend/`.
+Execute all commands from inside the `backend/` directory.
 
-## Como esta montado
+## Setup Architecture
 
-- `migrations/env.py` le a URL de `shared.config.Settings` e o metadata de
-  `orm_registry`, entao **runtime e migration nunca divergem**. Nao coloque URL
-  em `alembic.ini`.
-- `render_as_batch` fica ligado quando o banco e SQLite, porque `ALTER TABLE` no
-  SQLite e limitado: alterar/remover coluna ou constraint exige recriar a tabela.
-- `shared/database.py` define `NAMING_CONVENTION`. Constraint sem nome
-  determinista nao pode ser alterada depois; nunca remova essa convencao.
-- `post_write_hooks` no `alembic.ini` roda `ruff check --fix` e `ruff format` na
-  migration gerada, entao o arquivo ja nasce no padrao do projeto.
+- `migrations/env.py` reads database URL from `shared.config.Settings` and metadata from `orm_registry`, ensuring **runtime and migration schemas never diverge**. Do not place database URLs in `alembic.ini`.
+- `render_as_batch` is enabled when target database is SQLite due to limited `ALTER TABLE` support. Modifying/dropping columns or constraints requires table recreation.
+- `shared/database.py` defines `NAMING_CONVENTION`. Unnamed constraints cannot be altered later; never remove this convention.
+- `post_write_hooks` in `alembic.ini` automatically runs `ruff check --fix` and `ruff format` on newly generated migrations.
 
-## Fluxo
+## Workflow
 
 ```bash
-# 1. o model precisa estar importado em src/orm_registry.py, senao o autogenerate ignora
-uv run alembic revision --autogenerate -m "descricao curta"
+# 1. Model must be imported in src/orm_registry.py; otherwise autogenerate misses it
+uv run alembic revision --autogenerate -m "short description"
 
-# 2. LEIA o arquivo gerado antes de aplicar
+# 2. READ generated file before applying
 uv run alembic upgrade head
 
-# 3. valide que da o caminho de volta
+# 3. Validate rollback migration path
 uv run alembic downgrade -1
 uv run alembic upgrade head
 
-# 4. confirme que nao sobrou diferenca entre models e schema
+# 4. Confirm no schema drift remains
 uv run alembic check
 ```
 
-## Revisar o autogenerate (ele erra)
+## Reviewing Autogenerate Output
 
-- [ ] Model importado em `src/orm_registry.py`
-- [ ] `downgrade()` realmente desfaz o `upgrade()`
-- [ ] Alteracao de coluna existente dentro de `batch_alter_table`
-- [ ] Coluna nova `nullable=False` em tabela com dados: adicione com
-      `server_default`, faca o backfill e so depois remova o default
-- [ ] Indice unico de campo case-insensitive aponta para a coluna normalizada
-- [ ] Nenhum `DROP TABLE`/`DROP COLUMN` que voce nao pediu (autogenerate remove o
-      que nao esta no metadata)
-- [ ] Renomear coluna nao vira drop+create (o autogenerate nao detecta rename;
-      escreva `batch_op.alter_column(..., new_column_name=...)` na mao)
+- [ ] Model imported in `src/orm_registry.py`
+- [ ] `downgrade()` properly reverts `upgrade()`
+- [ ] Existing column modifications wrapped inside `batch_alter_table`
+- [ ] New `nullable=False` columns on populated tables: add with `server_default`, perform backfill, then drop default
+- [ ] Unique index on case-insensitive fields targets normalized column
+- [ ] No unintended `DROP TABLE` / `DROP COLUMN` operations
+- [ ] Column renames not converted into drop + create (manually write `batch_op.alter_column(..., new_column_name=...)`)
 
-## Tipos usados no projeto
+## Data Types Used
 
-- PK: `Uuid()` gerado no dominio (`uuid4()`), nao autoincrement.
-- Data/hora: `DateTime(timezone=True)`. **SQLite nao guarda timezone**, entao os
-  mappers reanexam UTC na leitura (`_as_utc`). Mantenha esse cuidado.
-- Lista/estrutura simples: `JSON`.
-- Escopo de usuario: tabelas de negocio devem incluir
-  `user_id = mapped_column(Uuid(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)`.
-  Padrao estabelecido desde a migration 3 (`add_users_and_scope_data_per_user`).
+- PK: `Uuid()` generated in domain layer (`uuid4()`), not autoincrement.
+- Date/Time: `DateTime(timezone=True)`. **SQLite does not store timezone**, mappers normalize to UTC on read (`_as_utc`).
+- Simple lists/structures: `JSON`.
+- User scoping: Business tables include `user_id = mapped_column(Uuid(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)`.
 
-## Quando o banco local ficar inconsistente
+## Resetting Local Database
 
-O arquivo e descartavel e esta no `.gitignore`:
+Local database file is disposable and ignored in git:
 
 ```bash
 rm backend/data/piliplingo.db   # PowerShell: Remove-Item backend/data/piliplingo.db
 uv run alembic upgrade head
 ```
 
-No Docker o banco vive no volume `backend-data` e o entrypoint roda
-`alembic upgrade head` a cada start. Para zerar: `docker compose down -v`.
+In Docker, data lives in the `backend-data` volume and the entrypoint executes `alembic upgrade head` on startup. To reset: `docker compose down -v`.

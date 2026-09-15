@@ -1,134 +1,102 @@
 ---
 name: backend-vertical-slice
-description: Cria uma nova fatia vertical no backend FastAPI do PilipLingo seguindo arquitetura hexagonal (domain, application, infrastructure, api). Use ao adicionar um modulo/feature de negocio novo no backend, como lessons, progress, achievements ou decks, ou ao adicionar caso de uso, rota ou tabela dentro de uma fatia existente.
+description: Creates a new vertical slice in PilipLingo FastAPI backend following hexagonal architecture (domain, application, infrastructure, api). Use when adding a new backend module/feature like lessons, progress, achievements, or decks, or when adding use cases, routes, or tables inside an existing slice.
 metadata:
   author: PilipLingo
   version: 1.1.0
 ---
 
-# Nova fatia vertical no backend
+# New vertical slice in the backend
 
-## Contexto do projeto que voce precisa lembrar
+## Project Context to Remember
 
-- `backend/src` **e a raiz de imports**. Nao existe pacote `piliplingo`. Import e
-  `from modules.x.domain...`, nunca `from src...` nem `from piliplingo...`.
-- O projeto nao e empacotado (`[tool.uv] package = false`). Por isso:
-  uvicorn usa `--app-dir src`, pytest usa `pythonpath = ["src"]`,
-  Alembic usa `prepend_sys_path = %(here)s/src`.
-- Tudo roda por `uv` a partir de `backend/`.
-- O projeto possui **autenticacao JWT + bcrypt** (modulo `users`). Toda entidade
-  de negocio persistida e escopada por `user_id` (`ForeignKey("users.id",
-  ondelete="CASCADE")`). Repositorios recebem `user_id` no construtor e filtram
-  por ele em todas as queries. Rotas injetam `CurrentUserDep` (de
-  `modules.users.api.dependencies`) e passam `user.id` ao repositorio via
-  `dependencies.py`. Referencia: `modules/vocabulary/api/dependencies.py`.
+- `backend/src` **is the root of all imports**. There is no `piliplingo` package. Import as `from modules.x.domain...`, never `from src...` or `from piliplingo...`.
+- Project is not packaged (`[tool.uv] package = false`). Therefore: uvicorn uses `--app-dir src`, pytest uses `pythonpath = ["src"]`, Alembic uses `prepend_sys_path = %(here)s/src`.
+- Everything is executed via `uv` from the `backend/` directory.
+- The project implements **JWT + bcrypt authentication** (`users` module). Every persisted business entity is scoped by `user_id` (`ForeignKey("users.id", ondelete="CASCADE")`). Repositories accept `user_id` in their constructor and filter by it across all queries. Routes inject `CurrentUserDep` (from `modules.users.api.dependencies`) and pass `user.id` to the repository via `dependencies.py`. Reference: `modules/vocabulary/api/dependencies.py`.
 
-## Fatias que ja existem
+## Existing Slices
 
-- `modules/vocabulary` — CRUD de vocabulario, geracao de frases (Gemini), traducao, validacao (spaCy), estudo com SRS.
-- `modules/users` — cadastro e autenticacao (JWT + bcrypt, `CurrentUserDep`).
-- `modules/chat` — conversas com tutor IA, topicos, metas comunicativas, turnos com feedback.
+- `modules/vocabulary` — Vocabulary CRUD, Gemini sentence generation, structural translation, spaCy validation, SRS study.
+- `modules/users` — Registration and authentication (JWT + bcrypt, `CurrentUserDep`).
+- `modules/chat` — AI tutor conversations, topics, goals, turns with feedback.
 
-Antes de criar uma fatia nova, pergunte se a capacidade gira em volta de um
-agregado que ja existe. Se sim, ela pertence a fatia existente. Foi o caso da
-antiga fatia `sentences`: ela existia so para alcancar o vocabulario por uma
-porta intermediaria, e foi absorvida por `modules/vocabulary`. Fatia demais
-custa mais indirecao do que isolamento.
+Before creating a new slice, check if the functionality revolves around an existing aggregate. If so, place it inside the existing slice. Over-slicing adds indirection rather than isolation.
 
-## Regra de dependencia (nao viole)
+## Dependency Rule (Strict)
 
 ```
 api  ->  application  ->  domain  <-  infrastructure
 ```
 
-- `domain/` nao importa FastAPI, SQLAlchemy, Pydantic nem nenhuma lib externa.
-- `application/` importa apenas o proprio `domain` (entidades, portas, DTOs).
-- `infrastructure/` e `api/` sao os adaptadores; so eles conhecem framework e I/O.
-- Uma fatia **nao** importa `domain`/`application` de outra fatia. Se precisar de
-  dados de outra, declare uma porta na sua propria fatia (em termos do **seu**
-  dominio) e escreva o adaptador em `infrastructure/`, que traduz para o
-  repositorio da fatia fornecedora.
+- `domain/` never imports FastAPI, SQLAlchemy, Pydantic, or any external library.
+- `application/` imports only its own `domain` (entities, ports, DTOs).
+- `infrastructure/` and `api/` act as adapters; only they interact with frameworks and I/O.
+- A slice **never** imports `domain`/`application` from another slice. If cross-slice data is needed, declare a port in your own slice (in terms of **your** domain) and implement the adapter in `infrastructure/`.
 
-## Estrutura a criar
+## Directory Structure
 
 ```
 backend/src/modules/<slice>/
 ├── __init__.py
 ├── domain/
 │   ├── __init__.py
-│   ├── entities.py       # dataclasses + invariantes; factory `create()`
-│   ├── errors.py         # herda de shared.errors
-│   └── ports.py          # ABCs: o que a fatia precisa do mundo externo
+│   ├── entities.py       # dataclasses + invariants; factory `create()`
+│   ├── errors.py         # inherits from shared.errors
+│   └── ports.py          # ABCs: what the slice requires from external world
 ├── application/
 │   ├── __init__.py
-│   ├── dto.py            # dataclasses frozen (Command/Query/Result)
-│   └── use_cases.py      # uma classe por caso de uso, recebe portas no __init__
+│   ├── dto.py            # frozen dataclasses (Command/Query/Result)
+│   └── use_cases.py      # one class per use case, receives ports in __init__
 ├── infrastructure/
 │   ├── __init__.py
-│   ├── models.py         # SQLAlchemy, herda de shared.database.Base
-│   ├── mappers.py        # model <-> entidade
-│   └── repository.py     # implementa a porta
+│   ├── models.py         # SQLAlchemy, inherits from shared.database.Base
+│   ├── mappers.py        # model <-> entity
+│   └── repository.py     # implements the port
 └── api/
     ├── __init__.py
-    ├── schemas.py        # Pydantic; `from_entity()` para saida
-    ├── dependencies.py   # unico lugar que escolhe a implementacao concreta
+    ├── schemas.py        # Pydantic; `from_entity()` for output
+    ├── dependencies.py   # sole location choosing concrete implementation
     └── routes.py         # APIRouter(prefix="/<slice>", tags=["<slice>"])
 ```
 
-Use `modules/vocabulary` como referencia: e a fatia que junta persistencia
-(CRUD completo com repositorio e mappers) e servico externo (adaptador
-LangChain/Gemini atras da porta `SentenceGenerator`).
+Reference `modules/vocabulary` for complete persistence and external service integration.
 
-## Ordem de trabalho
+## Execution Order
 
-1. **Domain primeiro.** Entidades com `@dataclass(slots=True)` e factory
-   `create()` que valida e levanta `ValidationError`. Erros especificos em
-   `errors.py` herdando de `shared.errors` (`ValidationError`, `NotFoundError`,
-   `ConflictError`, `UnavailableError`, `UnauthorizedError`) — o mapeamento para
-   HTTP ja existe em `shared/api/error_handlers.py` (400, 404, 409, 503, 401),
-   nao repita status code nas rotas.
-2. **Portas.** ABC com `@abstractmethod` async. Assinaturas em termos do dominio
-   (entidades e value objects), nunca models ORM nem schemas Pydantic.
-3. **Casos de uso.** Uma classe por operacao, portas injetadas no `__init__`,
-   metodo `execute()`. Sem `await session.commit()` aqui.
-4. **Infrastructure.** Model ORM + mappers + repositorio.
-   O repositorio faz `flush()`, **nunca `commit()`**: a unidade de trabalho e a
-   dependencia `get_session`, que da commit no fim do request e rollback em erro.
-   Model deve ter `user_id = mapped_column(Uuid(), ForeignKey("users.id",
-   ondelete="CASCADE"), nullable=False)`. Repositorio recebe `user_id: UUID` no
-   `__init__` e aplica filtro em todas as queries.
+1. **Domain first.** Entities using `@dataclass(slots=True)` with factory `create()` validating invariants and raising domain errors. Specific errors in `errors.py` inheriting from `shared.errors` (`ValidationError`, `NotFoundError`, `ConflictError`, `UnavailableError`, `UnauthorizedError`) — HTTP status mapping already handled in `shared/api/error_handlers.py` (400, 404, 409, 503, 401).
+2. **Ports.** ABC with `@abstractmethod` async. Signatures strictly in domain terms (entities and value objects).
+3. **Use cases.** One class per operation, ports injected in `__init__`, `execute()` method. No `await session.commit()` in use cases.
+4. **Infrastructure.** ORM model + mappers + repository.
+   Repository calls `flush()`, **never `commit()`**: unit of work managed by `get_session` dependency.
+   Model must include `user_id = mapped_column(Uuid(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)`. Repository accepts `user_id: UUID` in `__init__` and applies filtering on all queries.
 5. **API.** `schemas.py` (Pydantic) -> `dependencies.py` (wiring) -> `routes.py`.
-   As rotas convertem schema em DTO, chamam o caso de uso e devolvem
-   `Response.from_entity(...)`. `dependencies.py` injeta `CurrentUserDep` e
-   passa `user.id` para o repositorio. Referencia:
-   `modules/vocabulary/api/dependencies.py`.
-6. **Registrar.** Sempre os dois:
-   - router em `backend/src/api/router.py`
-   - models em `backend/src/orm_registry.py` (senao o Alembic nao ve a tabela)
-7. **Migration** (se criou/alterou tabela): siga a skill `backend-migration`.
-8. **Definition of done:** rode os comandos da secao abaixo.
+   Routes map schemas to DTOs, execute use cases, and return `Response.from_entity(...)`. `dependencies.py` injects `CurrentUserDep` and passes `user.id` to repository.
+6. **Registration.** Always register both:
+   - router in `backend/src/api/router.py`
+   - models in `backend/src/orm_registry.py` (enables Alembic detection)
+7. **Migration** (if schema changed): follow `backend-migration` skill.
+8. **Definition of Done:** execute commands in the section below.
 
-## Comandos
+## Commands
 
 ```bash
 cd backend
 uv run ruff check src migrations
 uv run ruff format src migrations
-uv run mypy                     # strict; precisa passar
-uv run alembic revision --autogenerate -m "<descricao>"   # se mudou schema
+uv run mypy                     # strict; must pass
+uv run alembic revision --autogenerate -m "<description>"   # if schema changed
 uv run alembic upgrade head
 uv run uvicorn main:app --app-dir src --reload
 ```
 
-Verifique de verdade antes de dizer que acabou: suba a API e exercite as rotas
-novas (`/docs` ou httpx com `ASGITransport`), incluindo os caminhos de erro.
+Verify by starting the API and testing new endpoints (`/docs` or httpx ASGI test driver), including error paths.
 
-## Convencoes que o mypy strict cobra
+## Strict Mypy Conventions
 
-- Todas as funcoes anotadas, inclusive retorno `-> None`.
-- `from __future__ import annotations` no topo de cada modulo.
-- Tipos genericos parametrizados (`Select[Any]`, nao `Select`).
-- Docstring curta em portugues sem acento explicando o porque, nao o obvio.
+- All functions annotated, including `-> None` returns.
+- `from __future__ import annotations` at the top of every module.
+- Parameterized generic types (`Select[Any]`, not `Select`).
+- Concise docstrings in clear English explaining intent.
 
-Antes de finalizar, confira `references/checklist.md`.
-
+Before finishing, check `references/checklist.md`.
