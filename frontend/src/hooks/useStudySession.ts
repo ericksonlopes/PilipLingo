@@ -56,6 +56,10 @@ export function useStudySession(
   const isMounted = useRef(true);
   // Evita disparar saveSessionWords mais de uma vez por versao de sessao.
   const wordsSavedRef = useRef<number>(-1);
+  // Snapshot da queue no momento em que a sessao termina. Necessario porque
+  // reset() zera queue[] de forma sincrona antes que o useEffect de
+  // saveSessionWords possa disparar, causando envio com lista vazia.
+  const finishedQueueRef = useRef<StudyExercise[]>([]);
   // A chave depende do conteudo, nao da identidade do array recebido. Assim uma
   // renderizacao com a mesma selecao nao dispara outro fetch.
   const modesKey = modes.join("\u001f");
@@ -107,7 +111,14 @@ export function useStudySession(
     setIsLoading(true);
     setError(null);
     vocabularyApi
-      .studySession({ level, modes: requestedModes, theme, limit, signal: controller.signal })
+      .studySession({
+        level,
+        modes: requestedModes,
+        theme,
+        limit,
+        reset: true,
+        signal: controller.signal,
+      })
       .then((result) => {
         if (!active || sessionVersion.current !== version) return;
         setSession(result);
@@ -130,7 +141,7 @@ export function useStudySession(
       active = false;
       controller.abort();
     };
-  }, [enabled, level, modesKey, reloadToken, theme]);
+  }, [enabled, level, limit, modesKey, reloadToken, theme]);
 
   const submitReview = useCallback(
     (grade: ReviewGrade): Promise<void> => {
@@ -211,6 +222,7 @@ export function useStudySession(
     // fetches pendentes deixam de poder alterar qualquer estado imediatamente.
     sessionVersion.current += 1;
     wordsSavedRef.current = -1;
+    setReloadToken((token) => token + 1);
     setSession(null);
     setQueue([]);
     setIndex(0);
@@ -226,14 +238,25 @@ export function useStudySession(
     setReloadToken((token) => token + 1);
   }, []);
 
+  const isFinished = !isLoading && error === null && queue.length > 0 && index >= queue.length;
+  if (isFinished && wordsSavedRef.current !== sessionVersion.current) {
+    // Snapshot da queue no render em que isFinished se torna true.
+    // O reset() chamado logo em seguida vai zerar queue[], mas a ref ja tem o snapshot.
+    finishedQueueRef.current = queue;
+  }
+
   // Ao terminar a sessao, envia os focus_terms unicos para o backend traduzir
   // e salvar. Fire-and-forget: falha de rede nao interrompe o fluxo do aluno.
-  const isFinished = !isLoading && error === null && queue.length > 0 && index >= queue.length;
+  // Usa finishedQueueRef em vez de queue para nao depender do estado que reset() apaga.
   useEffect(() => {
     if (!isFinished) return;
     const version = sessionVersion.current;
     if (wordsSavedRef.current === version) return; // ja enviou nesta versao
     wordsSavedRef.current = version;
+
+    // Usa o snapshot capturado no render em que isFinished ficou true.
+    // Se reset() ja tiver zerado queue[], finishedQueueRef ainda tem os dados corretos.
+    const snapshot = finishedQueueRef.current;
 
     // Junta todo o vocabulario de cada card (varias palavras por frase) e cai
     // no focus_term quando um card antigo nao tem vocabulario. Junto vai o mapa
@@ -242,7 +265,7 @@ export function useStudySession(
     const translations: Record<string, string> = {};
     const words = [
       ...new Set(
-        queue.flatMap((ex) => {
+        snapshot.flatMap((ex) => {
           const vocab = ex.card.vocabulary ?? [];
           for (const item of vocab) {
             if (item.term && item.translation) {
@@ -266,7 +289,10 @@ export function useStudySession(
     void vocabularyApi.saveSessionWords(words, translations).catch(() => {
       // Silencioso: nao prejudica a experiencia do aluno.
     });
-  }, [isFinished, queue]);
+  }, [isFinished]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Intencional: a dependencia de 'queue' foi removida pois usamos finishedQueueRef
+  // (snapshot capturado no render). Adicionar queue causaria o bug original:
+  // reset() zera queue antes do effect rodar, resultando em envio com lista vazia.
 
   return {
     session,

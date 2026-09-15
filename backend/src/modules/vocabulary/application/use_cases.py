@@ -14,6 +14,7 @@ from modules.vocabulary.application.dto import (
     GenerateSentencesCommand,
     ListVocabularyQuery,
     PagedVocabulary,
+    ResetStudySessionCommand,
     ReviewStudyCardCommand,
     SaveSessionWordsCommand,
     SaveSessionWordsResult,
@@ -204,20 +205,39 @@ class BuildStudySession:
             raise ValidationError("VOCAB_MATCHING nao pode ser selecionado isoladamente.")
 
         logger.info(
-            "[session] iniciando | level=%s theme=%r limit=%d modes=%s ai=%s",
+            "[session] iniciando | level=%s theme=%r limit=%d modes=%s reset=%s ai=%s",
             query.level.value,
             query.theme,
             query.limit,
             [m.value for m in (query.modes or [])],
+            query.reset,
             "on" if self._generator is not None else "off",
         )
 
+        # Sempre descarta cards gerados de sessoes anteriores que nunca foram respondidos
+        deleted = await self._cards.delete_unreviewed(level=query.level)
+        if deleted:
+            logger.info(
+                "[session] %d cards nao revisados de sessoes abandonadas descartados", deleted
+            )
+
         now = datetime.now(UTC)
-        deck = await self._cards.list_due(level=query.level, now=now, limit=query.limit)
-        # Cards vencidos + os recem-gerados (que nascem vencidos) contam como divida
-        # de revisao. O que vier depois disso e estudo adiantado.
+        requested_theme = query.theme.strip() if query.theme is not None else None
+        deck = await self._cards.list_due(
+            level=query.level,
+            now=now,
+            limit=query.limit,
+            theme=requested_theme,
+        )
+        # Cards vencidos contam como divida de revisao. O que vier depois disso e
+        # estudo adiantado ou frases novas.
         due_count = len(deck)
-        logger.info("[session] cards vencidos no banco: %d/%d", due_count, query.limit)
+        logger.info(
+            "[session] cards vencidos no banco: %d/%d (theme=%r)",
+            due_count,
+            query.limit,
+            requested_theme,
+        )
 
         generated = 0
         if len(deck) < query.limit:
@@ -236,6 +256,7 @@ class BuildStudySession:
                 level=query.level,
                 limit=query.limit - len(deck),
                 exclude={card.id for card in deck},
+                theme=requested_theme,
             )
             logger.info(
                 "[session] adiantando %d cards futuros para completar o deck",
@@ -314,6 +335,22 @@ class BuildStudySession:
             raise SentenceGeneratorNotConfigured
         logger.error("[session] nenhum card disponivel mesmo com IA configurada")
         raise SentenceGenerationFailed("nenhum card disponivel para estudar agora")
+
+
+class ResetStudySession:
+    """Descarta cards gerados que nunca foram respondidos (sessao abandonada)."""
+
+    def __init__(self, cards: StudyCardRepository) -> None:
+        self._cards = cards
+
+    async def execute(self, command: ResetStudySessionCommand) -> int:
+        deleted = await self._cards.delete_unreviewed(level=command.level)
+        logger.info(
+            "[session] reset explicito: %d cards nao revisados descartados para level=%s",
+            deleted,
+            command.level.value,
+        )
+        return deleted
 
 
 class ReviewStudyCard:

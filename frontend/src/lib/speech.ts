@@ -49,6 +49,59 @@ export interface SpeechRecognizer {
 type RecognizerConstructor = new () => SpeechRecognizer;
 
 const SPEECH_LANG = "en-US";
+export const ENGLISH_VOICE_STORAGE_KEY = "piliplingo.englishVoiceUri";
+const ENGLISH_LANGUAGE_PATTERN = /^en(?:[-_]|$)/i;
+
+/** Retorna as vozes em inglês instaladas no navegador, em ordem estável. */
+export function getEnglishVoices(): SpeechSynthesisVoice[] {
+  if (!isSpeechSupported()) return [];
+
+  return window.speechSynthesis
+    .getVoices()
+    .filter((voice) => ENGLISH_LANGUAGE_PATTERN.test(voice.lang))
+    .sort((first, second) =>
+      first.lang.localeCompare(second.lang) || first.name.localeCompare(second.name),
+    );
+}
+
+/** A escolha é local porque as vozes disponíveis variam de aparelho para aparelho. */
+export function getPreferredEnglishVoiceUri(): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.localStorage.getItem(ENGLISH_VOICE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setPreferredEnglishVoiceUri(voiceUri: string | null): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    if (voiceUri === null) {
+      window.localStorage.removeItem(ENGLISH_VOICE_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(ENGLISH_VOICE_STORAGE_KEY, voiceUri);
+    }
+  } catch {
+    // A síntese continua com a voz padrão quando o armazenamento é bloqueado.
+  }
+}
+
+function applyPreferredEnglishVoice(utterance: SpeechSynthesisUtterance, lang: string): void {
+  if (!ENGLISH_LANGUAGE_PATTERN.test(lang)) return;
+
+  const preferredVoiceUri = getPreferredEnglishVoiceUri();
+  if (preferredVoiceUri === null) return;
+
+  const preferredVoice = getEnglishVoices().find(
+    (voice) => voice.voiceURI === preferredVoiceUri,
+  );
+  if (preferredVoice !== undefined) {
+    utterance.voice = preferredVoice;
+  }
+}
 
 function recognizerConstructor(): RecognizerConstructor | null {
   if (typeof window === "undefined") {
@@ -191,6 +244,7 @@ export function speakLang(text: string, lang: string, rate = 1): Promise<SpeechR
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
   utterance.rate = rate;
+  applyPreferredEnglishVoice(utterance, lang);
 
   return new Promise<SpeechResult>((resolve) => {
     const speech: ActiveSpeech = { utterance, resolve, watchdog: 0 };
@@ -232,6 +286,7 @@ export function speak(text: string, rate = 1): Promise<SpeechResult> {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = SPEECH_LANG;
   utterance.rate = rate;
+  applyPreferredEnglishVoice(utterance, SPEECH_LANG);
 
   return new Promise<SpeechResult>((resolve) => {
     const speech: ActiveSpeech = {

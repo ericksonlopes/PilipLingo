@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from modules.vocabulary.domain.ports import StudyCardRepository
@@ -53,23 +53,37 @@ class SqlAlchemyStudyCardRepository(StudyCardRepository):
         await self._session.flush()
         return study_card_to_domain(model)
 
+    async def delete_unreviewed(self, *, level: ProficiencyLevel) -> int:
+        stmt = delete(StudyCardModel).where(
+            StudyCardModel.user_id == self._user_id,
+            StudyCardModel.level == level.value,
+            StudyCardModel.repetitions == 0,
+            StudyCardModel.reviewed_at.is_(None),
+        )
+        result = await self._session.execute(stmt)
+        await self._session.flush()
+        return int(result.rowcount or 0)  # type: ignore[attr-defined]
+
     async def list_due(
         self,
         *,
         level: ProficiencyLevel,
         now: datetime,
         limit: int,
+        theme: str | None = None,
     ) -> list[StudyCard]:
+        stmt = select(StudyCardModel).where(
+            StudyCardModel.user_id == self._user_id,
+            StudyCardModel.level == level.value,
+            StudyCardModel.due_at <= now,
+            StudyCardModel.reviewed_at.is_not(None),
+        )
+        if theme and theme.strip():
+            stmt = stmt.where(StudyCardModel.theme == theme.strip())
         stmt = (
-            select(StudyCardModel)
-            .where(
-                StudyCardModel.user_id == self._user_id,
-                StudyCardModel.level == level.value,
-                StudyCardModel.due_at <= now,
+            stmt.order_by(StudyCardModel.due_at.asc(), StudyCardModel.created_at.asc()).limit(
+                limit
             )
-            # Mais atrasados primeiro; entre iguais, os nunca revisados na frente.
-            .order_by(StudyCardModel.due_at.asc(), StudyCardModel.created_at.asc())
-            .limit(limit)
         )
         models = (await self._session.execute(stmt)).scalars().all()
         return [study_card_to_domain(model) for model in models]
@@ -80,18 +94,28 @@ class SqlAlchemyStudyCardRepository(StudyCardRepository):
         level: ProficiencyLevel,
         limit: int,
         exclude: set[UUID] | None = None,
+        theme: str | None = None,
     ) -> list[StudyCard]:
         stmt = select(StudyCardModel).where(
             StudyCardModel.user_id == self._user_id,
             StudyCardModel.level == level.value,
+            StudyCardModel.reviewed_at.is_not(None),
         )
+        if theme and theme.strip():
+            stmt = stmt.where(StudyCardModel.theme == theme.strip())
         if exclude:
             stmt = stmt.where(StudyCardModel.id.notin_(exclude))
         stmt = stmt.order_by(StudyCardModel.due_at.asc()).limit(limit)
         models = (await self._session.execute(stmt)).scalars().all()
         return [study_card_to_domain(model) for model in models]
 
-    async def count_due(self, *, level: ProficiencyLevel, now: datetime) -> int:
+    async def count_due(
+        self,
+        *,
+        level: ProficiencyLevel,
+        now: datetime,
+        theme: str | None = None,
+    ) -> int:
         stmt = (
             select(func.count())
             .select_from(StudyCardModel)
@@ -99,8 +123,11 @@ class SqlAlchemyStudyCardRepository(StudyCardRepository):
                 StudyCardModel.user_id == self._user_id,
                 StudyCardModel.level == level.value,
                 StudyCardModel.due_at <= now,
+                StudyCardModel.reviewed_at.is_not(None),
             )
         )
+        if theme and theme.strip():
+            stmt = stmt.where(StudyCardModel.theme == theme.strip())
         return int((await self._session.execute(stmt)).scalar_one())
 
     async def existing_sentences(self, *, level: ProficiencyLevel) -> set[str]:

@@ -22,6 +22,7 @@ from modules.vocabulary.api.dependencies import (
     GenerateSentencesDep,
     GetUseCaseDep,
     ListUseCaseDep,
+    ResetStudySessionDep,
     ReviewStudyCardDep,
     SaveSessionWordsDep,
     SentenceValidatorDep,
@@ -58,6 +59,7 @@ from modules.vocabulary.application.dto import (
     CreateVocabularyEntryCommand,
     GenerateSentencesCommand,
     ListVocabularyQuery,
+    ResetStudySessionCommand,
     ReviewStudyCardCommand,
     SaveSessionWordsCommand,
     StudyHistoryQuery,
@@ -202,6 +204,10 @@ async def study_today(
             )
         ),
     ] = None,
+    reset: Annotated[
+        bool,
+        Query(description="Descarta cards nao revisados de sessoes anteriores antes de montar."),
+    ] = False,
 ) -> StudySessionResponse:
     session = await use_case.execute(
         StudySessionQuery(
@@ -209,9 +215,23 @@ async def study_today(
             limit=limit,
             theme=theme,
             modes=tuple(modes) if modes is not None else None,
+            reset=reset,
         )
     )
     return StudySessionResponse.from_entity(session)
+
+
+@router.post(
+    "/study/reset",
+    status_code=status.HTTP_200_OK,
+    summary="Descarta cards nao revisados de sessoes abandonadas",
+)
+async def reset_study_session(
+    use_case: ResetStudySessionDep,
+    level: Annotated[ProficiencyLevel, Query(description="Nivel CEFR do aluno.")],
+) -> dict[str, int]:
+    deleted = await use_case.execute(ResetStudySessionCommand(level=level))
+    return {"deleted": deleted}
 
 
 @router.post(

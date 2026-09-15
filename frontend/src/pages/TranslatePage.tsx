@@ -145,7 +145,7 @@ function SingleMode() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Em inglês: "I've been looking forward to this moment."\nEm português: "Eu tenho esperado por este momento."`}
+          placeholder="Digite ou cole uma frase em inglês ou português..."
           maxLength={MAX_CHARS + 1}
           disabled={loading}
           aria-describedby="translate-char-count"

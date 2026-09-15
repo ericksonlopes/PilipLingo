@@ -10,6 +10,7 @@ import {
   transcriptsOf,
 } from "../../lib/speech";
 import type { StudyExercise } from "../../lib/types";
+import ActionBarSlot from "./ActionBarSlot";
 import AudioButton from "./AudioButton";
 
 interface SpeakingPracticeProps {
@@ -222,13 +223,17 @@ export default function SpeakingPractice({
                 "http://, o navegador bloqueia a captura. Ouca, repita em voz alta e " +
                 "confirme para continuar."}
           </p>
-          <button
-            type="button"
-            className="btn btn--primary btn--block"
-            onClick={() => onResolve(true)}
-          >
-            Repeti a frase
-          </button>
+          <ActionBarSlot>
+            <div className="exercise__actions">
+              <button
+                type="button"
+                className="btn btn--primary btn--block"
+                onClick={() => onResolve(true)}
+              >
+                Repeti a frase
+              </button>
+            </div>
+          </ActionBarSlot>
         </>
       ) : null}
 

@@ -526,7 +526,7 @@ export default function StudySetup({
     }
   }
 
-  const [isModesExpanded, setIsModesExpanded] = useState(true);
+  const [isConfigExpanded, setIsConfigExpanded] = useState(false);
 
   return (
     <section className="page study-setup" aria-busy={isLoading}>
@@ -534,10 +534,10 @@ export default function StudySetup({
       <div className="setup-header">
         <p className="page__eyebrow">Preparar sessão</p>
         <h1 ref={headingRef} className="page__title" tabIndex={-1}>
-          Como você quer estudar?
+          O que você quer praticar hoje?
         </h1>
         <p className="page__meta">
-          Personalize os formatos de exercício e o tema da sua prática diária.
+          Escolha o tema das novas frases geradas por IA para a sua prática diária.
         </p>
       </div>
 
@@ -563,117 +563,9 @@ export default function StudySetup({
             </div>
           ) : (
             <>
-              {/* ---- Modos de exercício ---- */}
-              <fieldset className="field mode-fieldset" aria-describedby="study-mode-hint">
-                <div className="mode-card-header">
-                  <button
-                    type="button"
-                    className="mode-card-header__toggle"
-                    onClick={() => setIsModesExpanded((prev) => !prev)}
-                    aria-expanded={isModesExpanded}
-                  >
-                    <legend className="field__label mode-card-header__title">
-                      Formatos de exercício
-                      <span className="mode-card-header__badge">
-                        {selectedModes.length} de {options.modes.length}
-                      </span>
-                    </legend>
-                    <span
-                      className={`mode-card-header__chevron${
-                        isModesExpanded ? " mode-card-header__chevron--open" : ""
-                      }`}
-                      aria-hidden="true"
-                    >
-                      ▾
-                    </span>
-                  </button>
-
-                  {isModesExpanded && (
-                    <div className="mode-card-header__actions">
-                      <button
-                        type="button"
-                        className="btn btn--ghost btn--xs"
-                        onClick={handleSelectAll}
-                        disabled={selectedModes.length === options.modes.length}
-                      >
-                        Selecionar todos
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--ghost btn--xs"
-                        onClick={handleClearAll}
-                        disabled={selectedModes.length === 0}
-                      >
-                        Limpar
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {!isModesExpanded ? (
-                  <div
-                    className="mode-card-collapsed-summary"
-                    onClick={() => setIsModesExpanded(true)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setIsModesExpanded(true);
-                    }}
-                    aria-label="Formatos recolhidos. Toque para expandir"
-                  >
-                    <div className="mode-card-collapsed-icons">
-                      {selectedModes.map((mode) => (
-                        <span key={mode} className="mode-card-collapsed-icon" title={mode}>
-                          {modeIcon(mode)}
-                        </span>
-                      ))}
-                      {selectedModes.length === 0 && (
-                        <span className="mode-card-collapsed-warn">
-                          Nenhum formato selecionado
-                        </span>
-                      )}
-                    </div>
-                    <span className="mode-card-collapsed-hint">Toque para alterar</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="mode-card-list">
-                      {options.modes.map((option) => (
-                        <ModeCard
-                          key={option.mode}
-                          option={option}
-                          isSelected={selectedModes.includes(option.mode)}
-                          onToggle={() => onToggleMode(option.mode)}
-                        />
-                      ))}
-                    </div>
-
-                    <p
-                      id="study-mode-hint"
-                      className="setup-note"
-                      aria-live="polite"
-                      aria-atomic="true"
-                    >
-                      {selectedModes.length === 0 ? (
-                        <span className="setup-note--warn">
-                          ⚠️ Marque pelo menos um formato para começar o estudo.
-                        </span>
-                      ) : (
-                        <>
-                          <span className="setup-note__count">{selectedModes.length}</span>
-                          {selectedModes.length === 1
-                            ? " formato selecionado."
-                            : ` de ${options.modes.length} formatos selecionados.`}
-                        </>
-                      )}
-                    </p>
-                  </>
-                )}
-              </fieldset>
-
-              {/* ---- Tema ---- */}
-              <div className="field setup-theme-field">
-                <span className="field__label">
+              {/* ---- TEMA (DESTAQUE PRINCIPAL) ---- */}
+              <div className="field setup-theme-field setup-theme-field--hero">
+                <span className="field__label setup-theme-field__label">
                   <IconTheme />
                   Tema das frases novas
                 </span>
@@ -688,18 +580,120 @@ export default function StudySetup({
                 </p>
               </div>
 
-              {/* ---- Quantidade ---- */}
-              <div className="field">
-                <div className="limit-picker-header">
-                  <span className="field__label">Exercícios por sessão</span>
-                  <span className="limit-picker-estimate">
-                    ~{Math.round(sessionLimit * 0.8)} min estimados
+              {/* ---- CONFIGURAÇÕES SECUNDÁRIAS (FORMATOS E QUANTIDADE) ---- */}
+              <div
+                className={`study-config-accordion${
+                  isConfigExpanded ? " study-config-accordion--open" : ""
+                }`}
+              >
+                <button
+                  type="button"
+                  className="study-config-accordion__trigger"
+                  onClick={() => setIsConfigExpanded((prev) => !prev)}
+                  aria-expanded={isConfigExpanded}
+                >
+                  <div className="study-config-accordion__header-left">
+                    <span className="study-config-accordion__icon" aria-hidden="true">
+                      ⚙️
+                    </span>
+                    <div className="study-config-accordion__titles">
+                      <span className="study-config-accordion__title">
+                        Configurações da sessão
+                      </span>
+                      <span className="study-config-accordion__summary">
+                        {selectedModes.length === options.modes.length
+                          ? "Todos os formatos"
+                          : `${selectedModes.length} de ${options.modes.length} formatos`}{" "}
+                        • {sessionLimit} exercícios (~{Math.round(sessionLimit * 0.8)} min)
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`study-config-accordion__chevron${
+                      isConfigExpanded ? " study-config-accordion__chevron--open" : ""
+                    }`}
+                    aria-hidden="true"
+                  >
+                    ▾
                   </span>
-                </div>
-                <SessionLimitPicker value={sessionLimit} onChange={onSessionLimitChange} />
-                <p className="setup-note">
-                  Quantidade de exercícios que serão montados para esta prática.
-                </p>
+                </button>
+
+                {isConfigExpanded && (
+                  <div className="study-config-accordion__body">
+                    {/* Formatos de exercício */}
+                    <fieldset className="field mode-fieldset" aria-describedby="study-mode-hint">
+                      <div className="mode-card-header">
+                        <legend className="field__label">Formatos de exercício</legend>
+                        <div className="mode-card-header__actions">
+                          <button
+                            type="button"
+                            className="btn btn--ghost btn--xs"
+                            onClick={handleSelectAll}
+                            disabled={selectedModes.length === options.modes.length}
+                          >
+                            Selecionar todos
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn--ghost btn--xs"
+                            onClick={handleClearAll}
+                            disabled={selectedModes.length === 0}
+                          >
+                            Limpar
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mode-card-list">
+                        {options.modes.map((option) => (
+                          <ModeCard
+                            key={option.mode}
+                            option={option}
+                            isSelected={selectedModes.includes(option.mode)}
+                            onToggle={() => onToggleMode(option.mode)}
+                          />
+                        ))}
+                      </div>
+
+                      <p
+                        id="study-mode-hint"
+                        className="setup-note"
+                        aria-live="polite"
+                        aria-atomic="true"
+                      >
+                        {selectedModes.length === 0 ? (
+                          <span className="setup-note--warn">
+                            ⚠️ Marque pelo menos um formato para começar o estudo.
+                          </span>
+                        ) : (
+                          <>
+                            <span className="setup-note__count">{selectedModes.length}</span>
+                            {selectedModes.length === 1
+                              ? " formato selecionado."
+                              : ` de ${options.modes.length} formatos selecionados.`}
+                          </>
+                        )}
+                      </p>
+                    </fieldset>
+
+                    {/* Quantidade */}
+                    <div className="field">
+                      <div className="limit-picker-header">
+                        <span className="field__label">Exercícios por sessão</span>
+                        <span className="limit-picker-estimate">
+                          ~{Math.round(sessionLimit * 0.8)} min estimados
+                        </span>
+                      </div>
+                      <SessionLimitPicker
+                        value={sessionLimit}
+                        onChange={onSessionLimitChange}
+                      />
+                      <p className="setup-note">
+                        Quantidade de exercícios que serão montados para esta prática.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* ---- Aviso IA desligada ---- */}

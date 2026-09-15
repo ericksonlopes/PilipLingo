@@ -133,12 +133,17 @@ class StudyCardRepository(ABC):
         """Persiste o novo estado de agendamento apos a revisao."""
 
     @abstractmethod
+    async def delete_unreviewed(self, *, level: ProficiencyLevel) -> int:
+        """Remove cards gerados que nunca foram revisados (sessoes abandonadas)."""
+
+    @abstractmethod
     async def list_due(
         self,
         *,
         level: ProficiencyLevel,
         now: datetime,
         limit: int,
+        theme: str | None = None,
     ) -> list[StudyCard]:
         """Cards vencidos do nivel, dos mais atrasados para os menos."""
 
@@ -149,11 +154,18 @@ class StudyCardRepository(ABC):
         level: ProficiencyLevel,
         limit: int,
         exclude: set[UUID] | None = None,
+        theme: str | None = None,
     ) -> list[StudyCard]:
         """Cards do nivel independente de vencimento (completa grupo e evita repeticao)."""
 
     @abstractmethod
-    async def count_due(self, *, level: ProficiencyLevel, now: datetime) -> int:
+    async def count_due(
+        self,
+        *,
+        level: ProficiencyLevel,
+        now: datetime,
+        theme: str | None = None,
+    ) -> int:
         """Quantos cards do nivel estao vencidos."""
 
     @abstractmethod

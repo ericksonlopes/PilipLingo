@@ -6,6 +6,7 @@ import ChunkAnalysis from "../components/study/ChunkAnalysis";
 import GradeBar from "../components/study/GradeBar";
 import SentenceBuilder from "../components/study/SentenceBuilder";
 import SpeakingPractice from "../components/study/SpeakingPractice";
+import StudyLoading from "../components/study/StudyLoading";
 import StudySetup from "../components/study/StudySetup";
 import TypingCloze from "../components/study/TypingCloze";
 import VocabMatching from "../components/study/VocabMatching";
@@ -169,6 +170,8 @@ export default function StudyPage({ level }: StudyPageProps) {
     submitLockRef.current = false;
     setResolution(null);
     setIsSaving(false);
+    // Descarta cards nao revisados desta sessao abandonada
+    void vocabularyApi.resetStudySession(level).catch(() => undefined);
   }
 
   function changeAutoAdvance(enabled: boolean) {
@@ -269,7 +272,11 @@ export default function StudyPage({ level }: StudyPageProps) {
         onSessionLimitChange={setSessionLimit}
         onRetryLoad={() => setOptionsReloadToken((t) => t + 1)}
         onStart={() => {
-          if (selectedModes.length > 0) setHasStarted(true);
+          if (selectedModes.length > 0) {
+            reset();
+            reload();
+            setHasStarted(true);
+          }
         }}
       />
     );
@@ -277,16 +284,15 @@ export default function StudyPage({ level }: StudyPageProps) {
 
   if (isLoading) {
     return (
-      <section className="page" aria-busy="true">
-        <div className="study-head">
-          <p className="page__meta" role="status" aria-live="polite">
-            Montando sua sessão...
-          </p>
-          <button type="button" className="btn btn--sm" onClick={returnToSetup}>
-            Voltar
-          </button>
-        </div>
-      </section>
+      <StudyLoading
+        level={level}
+        theme={selectedTheme}
+        options={options}
+        selectedModes={selectedModes}
+        sessionLimit={sessionLimit}
+        isAiEnabled={isAiEnabled}
+        onCancel={returnToSetup}
+      />
     );
   }
 
@@ -392,11 +398,28 @@ export default function StudyPage({ level }: StudyPageProps) {
         </p>
         <button
           type="button"
-          className="btn btn--sm"
+          className="btn btn--sm btn--ghost study-exit-btn"
           disabled={isSaving}
           onClick={returnToSetup}
+          title="Sair da sessão"
+          aria-label="Sair da sessão e voltar à preparação"
         >
-          Alterar
+          <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Sair
         </button>
       </div>
 

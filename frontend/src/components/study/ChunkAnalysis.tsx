@@ -28,12 +28,21 @@ export default function ChunkAnalysis({ card }: ChunkAnalysisProps) {
     <div className="chunks">
       <button
         type="button"
-        className="btn btn--ghost btn--block"
+        className="chunks__toggle-btn"
         onClick={() => setIsOpen((value) => !value)}
         aria-expanded={isOpen}
         aria-controls={panelId}
       >
-        {isOpen ? "Esconder estrutura" : "Entender estrutura"}
+        <span className="chunks__toggle-label">
+          <span aria-hidden="true">💡</span>
+          {isOpen ? "Ocultar estrutura da frase" : "Entender estrutura da frase"}
+        </span>
+        <span
+          className={`chunks__chevron${isOpen ? " chunks__chevron--open" : ""}`}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
       </button>
 
       {isOpen ? (

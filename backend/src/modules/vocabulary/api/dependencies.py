@@ -16,6 +16,7 @@ from modules.vocabulary.application.use_cases import (
     GetStudyHistory,
     GetVocabularyEntry,
     ListVocabularyEntries,
+    ResetStudySession,
     ReviewStudyCard,
     SaveSessionWords,
     UpdateVocabularyEntry,
@@ -123,6 +124,10 @@ def get_review_study_card_use_case(cards: StudyRepositoryDep) -> ReviewStudyCard
     return ReviewStudyCard(cards)
 
 
+def get_reset_study_session_use_case(cards: StudyRepositoryDep) -> ResetStudySession:
+    return ResetStudySession(cards)
+
+
 def get_study_history_use_case(cards: StudyRepositoryDep) -> GetStudyHistory:
     return GetStudyHistory(cards)
 
@@ -147,6 +152,7 @@ UpdateUseCaseDep = Annotated[UpdateVocabularyEntry, Depends(get_update_use_case)
 DeleteUseCaseDep = Annotated[DeleteVocabularyEntry, Depends(get_delete_use_case)]
 GenerateSentencesDep = Annotated[GenerateSentences, Depends(get_generate_sentences_use_case)]
 BuildStudySessionDep = Annotated[BuildStudySession, Depends(get_build_study_session_use_case)]
+ResetStudySessionDep = Annotated[ResetStudySession, Depends(get_reset_study_session_use_case)]
 ReviewStudyCardDep = Annotated[ReviewStudyCard, Depends(get_review_study_card_use_case)]
 StudyHistoryDep = Annotated[GetStudyHistory, Depends(get_study_history_use_case)]
 SaveSessionWordsDep = Annotated[SaveSessionWords, Depends(get_save_session_words_use_case)]

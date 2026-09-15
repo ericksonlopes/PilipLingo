@@ -89,7 +89,7 @@ export default function TranslateChatView({
         <textarea
           ref={inputRef}
           className="tc-view__input"
-          placeholder={'Ex.: "She had already left." ou "Ela já tinha saído."'}
+          placeholder="Digite em inglês ou português..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}

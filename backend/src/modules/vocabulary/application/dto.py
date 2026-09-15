@@ -77,6 +77,13 @@ class StudySessionQuery:
     theme: str | None = None
     # None preserva a montagem legada, inclusive com VOCAB_MATCHING.
     modes: tuple[ExerciseMode, ...] | None = None
+    # True = descarta cards nao revisados de sessoes anteriores/abandonadas antes de montar.
+    reset: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ResetStudySessionCommand:
+    level: ProficiencyLevel
 
 
 @dataclass(frozen=True, slots=True)

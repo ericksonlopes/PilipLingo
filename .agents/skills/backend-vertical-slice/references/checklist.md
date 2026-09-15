@@ -26,11 +26,14 @@
 - [ ] Repositorio usa `flush()`, nunca `commit()`
 - [ ] Mappers convertem nos dois sentidos e reanexam UTC em datas do SQLite
 - [ ] Coluna de unicidade case-insensitive guarda a versao normalizada
+- [ ] Tabela com dados de usuario possui `user_id` com FK CASCADE para `users.id`
+- [ ] Repositorio recebe `user_id` no construtor e filtra por ele em todas as queries
 
 ## API
 
 - [ ] `schemas.py` com `from_entity()` para respostas
 - [ ] `dependencies.py` e o unico ponto que instancia implementacao concreta
+- [ ] Rotas que acessam dados do usuario injetam `CurrentUserDep` e passam `user.id` ao repositorio
 - [ ] Rotas sem try/except de erro de dominio (o handler global cuida)
 - [ ] `status_code` correto (201 no create, 204 no delete)
 - [ ] `summary` em cada rota para a doc do OpenAPI ficar legivel

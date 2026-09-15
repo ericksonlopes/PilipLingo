@@ -3,7 +3,7 @@ name: backend-migration
 description: Cria e aplica migrations Alembic no backend do PilipLingo (SQLAlchemy async + SQLite). Use ao adicionar ou alterar tabela, coluna, indice ou constraint, ou quando o alembic acusar drift de schema.
 metadata:
   author: PilipLingo
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Migrations com Alembic
@@ -58,6 +58,9 @@ uv run alembic check
 - Data/hora: `DateTime(timezone=True)`. **SQLite nao guarda timezone**, entao os
   mappers reanexam UTC na leitura (`_as_utc`). Mantenha esse cuidado.
 - Lista/estrutura simples: `JSON`.
+- Escopo de usuario: tabelas de negocio devem incluir
+  `user_id = mapped_column(Uuid(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)`.
+  Padrao estabelecido desde a migration 3 (`add_users_and_scope_data_per_user`).
 
 ## Quando o banco local ficar inconsistente
 

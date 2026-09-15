@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
+import SettingsModal from "./SettingsModal";
 import type { ProficiencyLevel } from "../lib/types";
 
 interface AppShellProps {
@@ -11,12 +13,12 @@ interface AppShellProps {
   onLogout?: () => void;
 }
 
-// Três abas: estudar, historico, chat e traduzir.
+// Quatro abas principais: Estudar, Chat, Traduzir e Histórico à direita.
 const TABS = [
   { to: "/", label: "Estudar", icon: "sparkle" },
-  { to: "/historico", label: "Historico", icon: "history" },
   { to: "/chat", label: "Chat", icon: "chat" },
   { to: "/traduzir", label: "Traduzir", icon: "translate" },
+  { to: "/historico", label: "Histórico", icon: "history" },
 ] as const;
 
 type IconName = (typeof TABS)[number]["icon"];
@@ -29,36 +31,86 @@ export default function AppShell({
   username,
   onLogout,
 }: AppShellProps) {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   return (
     <div className="app-shell">
       <header className="app-header">
-        <span className="app-logo" aria-hidden="true">
-          P
-        </span>
-        <div className="app-header__text">
-          <h1 className="app-title">PilipLingo</h1>
-          <p className="app-subtitle">Ingles no seu ritmo</p>
-        </div>
         <button
           type="button"
-          className="level-chip"
-          onClick={onChangeLevel}
-          aria-label={`Seu nivel: ${level}. Toque para alterar`}
+          className="app-header__profile"
+          onClick={() => setIsSettingsOpen(true)}
+          aria-label={`Perfil de ${username || "usuário"}. Toque para abrir configurações`}
+          title="Ver perfil e configurações"
         >
-          {level}
+          <div className="app-header__avatar" aria-hidden="true">
+            {username ? username.trim().charAt(0).toUpperCase() : "U"}
+          </div>
+          <span className="app-header__username">
+            {username || "Perfil"}
+          </span>
         </button>
-        {onLogout ? (
+
+        <div className="app-header__actions">
           <button
             type="button"
-            className="btn btn--ghost btn--sm"
-            onClick={onLogout}
-            aria-label={username ? `Sair da conta ${username}` : "Sair da conta"}
-            title={username ? `Sair (${username})` : "Sair"}
+            className="level-chip"
+            onClick={onChangeLevel}
+            aria-label={`Seu nível: ${level}. Toque para alterar`}
+            title={`Nível de proficiência: ${level}. Toque para alterar`}
           >
-            Sair
+            <span className="level-chip__dot" aria-hidden="true" />
+            <span className="level-chip__label">Nível</span>
+            <span className="level-chip__value">{level}</span>
+            <svg
+              className="level-chip__chevron"
+              aria-hidden="true"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
-        ) : null}
+
+          <button
+            type="button"
+            className="app-header__config-btn"
+            onClick={() => setIsSettingsOpen(true)}
+            aria-label="Configurações da conta"
+            title="Configurações"
+          >
+            <svg
+              aria-hidden="true"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
       </header>
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        username={username}
+        level={level}
+        onChangeLevel={onChangeLevel}
+        onLogout={onLogout}
+      />
 
       <main className="app-main" id="conteudo">
         {children}

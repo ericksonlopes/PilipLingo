@@ -3,7 +3,7 @@ name: frontend-feature
 description: Adiciona uma feature no frontend do PilipLingo (Vite + React 19 + TypeScript) mantendo o padrao mobile-first e PWA. Use ao criar tela, aba, componente, hook ou chamada de API nova no app, ou ao consumir um endpoint novo do backend.
 metadata:
   author: PilipLingo
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Nova feature no frontend
@@ -17,30 +17,60 @@ metadata:
 - Em dev, `/api` e encaminhado ao backend pelo proxy do Vite (`vite.config.ts`),
   entao nao existe CORS local.
 
+## Autenticacao
+
+O app exige login antes de renderizar qualquer rota. Sem sessao ativa, `App.tsx`
+exibe `AuthPage`. Com sessao, renderiza `AppShell` com as rotas autenticadas.
+
+- `useAuth()` gerencia sessao (login, register, logout, usuario corrente).
+- `lib/api.ts` anexa `Authorization: Bearer <token>` automaticamente em todas as
+  chamadas via `authToken`. Nao e necessario tratar auth manualmente nos hooks.
+- O header do `AppShell` exibe avatar e username do usuario autenticado.
+
 ## Onde cada coisa mora
 
 ```
 frontend/src/
 ├── lib/types.ts        # espelha os schemas Pydantic do backend
-├── lib/api.ts          # request() tipado + ApiError + um objeto por fatia
+├── lib/api.ts          # request() tipado + ApiError + objetos por fatia
 ├── lib/levels.ts       # rotulos de nivel CEFR
-├── hooks/              # estado da feature (useVocabulary, useLevel)
+├── lib/speech.ts       # sintese de voz
+├── lib/answers.ts      # validacao de respostas
+├── hooks/              # estado da feature (useAuth, useVocabulary, useLevel, useStudySession...)
+├── features/           # feature slices para dominios complexos
+│   ├── chat/           # useChatPage + componentes de chat
+│   └── translation/    # useTranslateChat + componentes de traducao
 ├── components/         # UI reutilizavel (AppShell, sheets, cards)
+│   ├── study/          # 11 componentes modulares de exercicios
+│   └── translation/    # componentes de traducao
 ├── pages/              # uma tela por rota
 └── styles/global.css   # tokens + classes; sem CSS-in-JS
 ```
+
+## Abas atuais do AppShell
+
+Quatro abas ativas em `components/AppShell.tsx`:
+
+| Aba | Rota | Descricao |
+|---|---|---|
+| Estudar | `/` | Sessao de estudo com SRS |
+| Chat | `/chat` | Conversa com tutor IA |
+| Traduzir | `/traduzir` | Traducao interativa |
+| Historico | `/historico` | Historico de estudo |
 
 ## Ordem de trabalho
 
 1. **Tipos primeiro.** Em `lib/types.ts`, espelhe exatamente o schema do backend,
    inclusive `snake_case` nos campos vindos da API. Nao renomeie para camelCase.
 2. **Cliente.** Em `lib/api.ts`, adicione um metodo no objeto da fatia
-   (`vocabularyApi`, ...) usando o `request<T>()` existente. Ele ja
-   trata 204, JSON, e converte erro em `ApiError` com `status` e `code`.
-   Passe `signal` quando a chamada puder ser cancelada.
+   (`authApi`, `vocabularyApi`, `chatApi`, `translationApi`) usando o
+   `request<T>()` existente. Ele ja trata 204, JSON, e converte erro em
+   `ApiError` com `status` e `code`. Passe `signal` quando a chamada puder ser
+   cancelada.
 3. **Hook** (se houver estado de servidor): debounce em busca, `AbortController`
    para cancelar request anterior, flag `active` para nao setar state apos unmount.
-   Veja `hooks/useVocabulary.ts`.
+   Veja `hooks/useVocabulary.ts`. Para dominios complexos, considere criar em
+   `features/<dominio>/` em vez de `hooks/`.
 4. **Pagina/componente.** Trate os quatro estados: carregando, vazio, erro (com
    acao de retry) e sucesso. Erro sempre com `role="alert"`.
 5. **Rota e navegacao.** Adicione `<Route>` em `App.tsx` e, se for uma secao
@@ -77,3 +107,4 @@ npm run preview    # unica forma de testar o PWA (o SW nao roda em dev)
 ```
 
 Antes de finalizar, confira `references/checklist.md`.
+

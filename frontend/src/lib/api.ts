@@ -129,6 +129,7 @@ export interface StudySessionParams {
   limit?: number;
   theme?: string | null;
   modes?: ExerciseMode[];
+  reset?: boolean;
   signal?: AbortSignal;
 }
 
@@ -202,7 +203,7 @@ export const vocabularyApi = {
   },
 
   /** Monta a sessao somente depois da confirmacao do menu de preparacao. */
-  studySession({ level, limit, theme, modes, signal }: StudySessionParams) {
+  studySession({ level, limit, theme, modes, reset, signal }: StudySessionParams) {
     if (modes !== undefined && modes.length === 0) {
       throw new ApiError("Selecione pelo menos um formato de exercicio.", 0, "empty_modes");
     }
@@ -214,10 +215,22 @@ export const vocabularyApi = {
     if (theme?.trim()) {
       query.set("theme", theme.trim());
     }
+    if (reset) {
+      query.set("reset", "true");
+    }
     for (const mode of modes ?? []) {
       query.append("modes", mode);
     }
     return request<StudySession>(`/vocabulary/study/today?${query.toString()}`, { signal });
+  },
+
+  /** Descarta cards gerados que nunca foram revisados (sessao abandonada). */
+  resetStudySession(level: ProficiencyLevel, signal?: AbortSignal) {
+    const query = new URLSearchParams({ level });
+    return request<{ deleted: number }>(`/vocabulary/study/reset?${query.toString()}`, {
+      method: "POST",
+      signal,
+    });
   },
 
   /** Registra o resultado da revisao e reagenda o card. */

@@ -12,20 +12,49 @@ interface BlockAssemblyProps {
   onResolve: (wasCorrect: boolean) => void;
 }
 
+function IconKeyboard() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8" />
+    </svg>
+  );
+}
+
+function IconBlocks() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="7" width="8" height="6" rx="1.5" />
+      <rect x="14" y="7" width="8" height="6" rx="1.5" />
+      <path d="M10 10h4" />
+      <path d="M5 17h14" />
+    </svg>
+  );
+}
+
 /**
  * Modos 2 e 3: o aluno monta a frase tocando em blocos OU digitando com o teclado.
- *
- * `AUDIO_DICTATION` da so o audio e blocos de palavras soltas. `BLOCK_TRANSLATION`
- * da a frase em portugues e blocos maiores, que sao os proprios chunks da analise
- * estrutural: ordenar "[I've been] [looking forward to] [this moment]" e um passo
- * mais perto de entender a construcao do que ordenar palavra por palavra.
- *
- * Quem prefere teclado pode alternar para digitar a frase inteira: a correcao
- * usa a mesma `answer` que ja vem do backend (comparacao exata + "quase certo").
- * A preferencia vale para a sessao toda.
- *
- * Os blocos sao rastreados por posicao, nao por texto, porque a mesma palavra
- * pode aparecer duas vezes na frase.
+ * A alternância é feita exclusivamente pelo botão ao lado de "Ouvir de novo".
  */
 export default function BlockAssembly({ exercise, isResolved, onResolve }: BlockAssemblyProps) {
   const { inputMode, toggle } = useTypingPreference();
@@ -33,39 +62,38 @@ export default function BlockAssembly({ exercise, isResolved, onResolve }: Block
 
   return (
     <div className="exercise">
-      {isDictation ? (
-        <AudioButton text={exercise.card.sentence} label="Ouvir de novo" />
-      ) : (
-        <p className="exercise__sentence exercise__sentence--source">{exercise.prompt}</p>
-      )}
+      <div className="block-assembly__top">
+        {isDictation ? (
+          <AudioButton text={exercise.card.sentence} label="Ouvir de novo" />
+        ) : (
+          <p className="exercise__sentence exercise__sentence--source">{exercise.prompt}</p>
+        )}
 
-      {isDictation ? <AudioButton text={exercise.card.sentence} label="Devagar" slow /> : null}
-
-      {!isResolved && (
-        <div className="input-mode" role="group" aria-label="Como responder">
+        {!isResolved && (
           <button
             type="button"
-            className={`input-mode__option${inputMode === "blocks" ? " input-mode__option--on" : ""}`}
-            onClick={() => inputMode !== "blocks" && toggle()}
-            aria-pressed={inputMode === "blocks"}
+            className="block-assembly__icon-toggle"
+            onClick={toggle}
+            title={inputMode === "blocks" ? "Digitar no teclado" : "Montar com blocos"}
+            aria-label={inputMode === "blocks" ? "Digitar no teclado" : "Montar com blocos"}
           >
-            Blocos
+            {inputMode === "blocks" ? <IconKeyboard /> : <IconBlocks />}
           </button>
-          <button
-            type="button"
-            className={`input-mode__option${inputMode === "typing" ? " input-mode__option--on" : ""}`}
-            onClick={() => inputMode !== "typing" && toggle()}
-            aria-pressed={inputMode === "typing"}
-          >
-            Digitar
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {inputMode === "typing" ? (
-        <TypingAnswer exercise={exercise} isResolved={isResolved} onResolve={onResolve} />
+        <TypingAnswer
+          exercise={exercise}
+          isResolved={isResolved}
+          onResolve={onResolve}
+        />
       ) : (
-        <BlocksAnswer exercise={exercise} isResolved={isResolved} onResolve={onResolve} />
+        <BlocksAnswer
+          exercise={exercise}
+          isResolved={isResolved}
+          onResolve={onResolve}
+        />
       )}
     </div>
   );

@@ -3,15 +3,19 @@ name: backend-external-adapter
 description: Integra um servico externo (LLM, API HTTP de terceiros, provedor de e-mail, TTS) no backend do PilipLingo atras de uma porta do dominio. Use ao adicionar integracao com Gemini/LangChain, dicionario externo, audio, tradutor ou qualquer dependencia de rede paga ou instavel.
 metadata:
   author: PilipLingo
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Integrar servico externo atras de uma porta
 
-Referencia canonica no projeto: a geracao de frases da fatia `vocabulary`
-(LangChain + Gemini). Leia estes dois antes de comecar:
-`modules/vocabulary/infrastructure/gemini_generator.py` e
-`modules/vocabulary/infrastructure/chat_model.py`.
+Adaptadores existentes no projeto — leia como referencia antes de comecar:
+
+- `modules/vocabulary/infrastructure/gemini_generator.py` — geracao de frases com LangChain + Gemini.
+- `modules/vocabulary/infrastructure/chat_model.py` — factory do client Gemini com `@lru_cache`.
+- `modules/chat/infrastructure/gemini_tutor.py` — tutor interativo com LangChain + Gemini.
+- `modules/vocabulary/infrastructure/gemini_phrase_translator.py` — analise estrutural de frases em blocos.
+- `modules/vocabulary/infrastructure/word_translator.py` — traducao via `deep-translator`.
+- `modules/vocabulary/infrastructure/sentence_validator.py` — validacao NLP local com spaCy.
 
 ## Principio
 
@@ -60,9 +64,9 @@ api/dependencies.py      escolhe a implementacao concreta
 ## Seguranca e custo (obrigatorio)
 
 - Credencial so por variavel de ambiente; `.env` fica fora do git.
-- Se o endpoint gasta dinheiro por chamada, avise no README e no resumo ao
-  usuario que a rota **nao tem auth nem rate limiting** enquanto isso for verdade,
-  e mantenha um teto por requisicao.
+- As rotas de IA existentes **ja exigem autenticacao Bearer** (`CurrentUserDep`).
+  Se a nova rota gasta dinheiro por chamada, garanta que tambem exija auth.
+  Rate limiting ainda nao existe — mencione como melhoria futura se relevante.
 - Deixe claro quais dados do usuario saem da maquina para o terceiro.
 - Timeout sempre definido. Retries baixos (0 a 2).
 
@@ -94,3 +98,4 @@ uv run ruff check src && uv run mypy
 Confirme a API real do pacote instalado por introspecao
 (`uv run python -c "import x; print(dir(x))"`) em vez de confiar na memoria:
 SDKs de IA mudam de nome de classe e de parametro com frequencia.
+
