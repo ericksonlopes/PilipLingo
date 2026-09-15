@@ -1,4 +1,4 @@
-"""Adaptador SQLAlchemy das portas de persistencia da fatia chat."""
+"""SQLAlchemy adapter for chat slice persistence ports."""
 
 from __future__ import annotations
 
@@ -39,9 +39,9 @@ from modules.chat.infrastructure.models import (
 
 
 class SqlAlchemyConversationRepository(ConversationRepository):
-    """Persiste conversations e turns via SQLAlchemy async.
+    """Persists conversations and turns via async SQLAlchemy.
 
-    O commit e responsabilidade de get_session; aqui so flush.
+    Commit is the responsibility of get_session; here only flush.
     """
 
     def __init__(self, session: AsyncSession) -> None:
@@ -92,7 +92,7 @@ class SqlAlchemyConversationRepository(ConversationRepository):
     async def update_conversation(self, conversation: Conversation) -> Conversation:
         model = await self._session.get(ConversationModel, conversation.id)
         if model is None:
-            raise LookupError(f"ConversationModel {conversation.id} nao encontrado.")
+            raise LookupError(f"ConversationModel {conversation.id} not found.")
         apply_conversation_to_model(model, conversation)
         await self._session.flush()
         return conversation_to_domain(model)
@@ -125,8 +125,8 @@ class SqlAlchemyConversationRepository(ConversationRepository):
     async def last_turns(
         self, conversation_id: UUID, *, limit: int
     ) -> list[ConversationTurn]:
-        """Retorna os ultimos N turnos em ordem cronologica crescente."""
-        # Estrategia simples: busca tudo e fatia em Python (conversa max 40 turnos).
+        """Returns the last N turns in ascending chronological order."""
+        # Simple strategy: fetch all and slice in Python (conversation max 40 turns).
         stmt = (
             select(ConversationTurnModel)
             .where(ConversationTurnModel.conversation_id == conversation_id)
@@ -134,13 +134,13 @@ class SqlAlchemyConversationRepository(ConversationRepository):
             .limit(limit)
         )
         rows = list((await self._session.execute(stmt)).scalars().all())
-        # Reordena crescente antes de retornar.
+        # Reorder ascending before returning.
         rows.sort(key=lambda r: r.turn_index)
         return [turn_to_domain(row) for row in rows]
 
 
 class SqlAlchemyTopicRepository(TopicRepository):
-    """Persiste e le topicos pre-definidos."""
+    """Persists and reads predefined topics."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -155,7 +155,7 @@ class SqlAlchemyTopicRepository(TopicRepository):
         return int((await self._session.execute(stmt)).scalar_one())
 
     async def seed(self, topics: list[ChatTopic]) -> None:
-        """Insere somente se a tabela estiver vazia."""
+        """Inserts only if table is empty."""
         count = await self.count_topics()
         if count > 0:
             return
@@ -165,7 +165,7 @@ class SqlAlchemyTopicRepository(TopicRepository):
 
 
 class SqlAlchemyGoalRepository(GoalRepository):
-    """Persiste e le metas pre-definidas."""
+    """Persists and reads predefined goals."""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -180,7 +180,7 @@ class SqlAlchemyGoalRepository(GoalRepository):
         return int((await self._session.execute(stmt)).scalar_one())
 
     async def seed(self, goals: list[ChatGoal]) -> None:
-        """Insere ou sincroniza metas pré-definidas e seus targets."""
+        """Inserts or syncs predefined goals and their targets."""
         stmt = select(ChatGoalModel)
         existing_rows = (await self._session.execute(stmt)).scalars().all()
         if existing_rows:

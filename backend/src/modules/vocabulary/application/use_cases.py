@@ -1,4 +1,4 @@
-"""Casos de uso de vocabulary. Dependem apenas da porta VocabularyRepository."""
+"""Use cases for vocabulary slice. Depend only on VocabularyRepository port."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ from shared.errors import UnavailableError, ValidationError
 
 logger = logging.getLogger(__name__)
 
-# Amostra lida do banco antes do sorteio, para variar as frases entre chamadas.
+# Sample size read from DB before random selection, to vary sentences across calls.
 _TERM_SAMPLE_POOL = 50
 
 
@@ -127,12 +127,7 @@ class DeleteVocabularyEntry:
 
 
 class GenerateSentences:
-    """Gera frases de exemplo, opcionalmente usando o vocabulario salvo do usuario.
-
-    Antes vivia na fatia `sentences` e alcancava o vocabulario por uma porta
-    `TermCatalog`. Agora que as duas capacidades estao na mesma fatia, o caso de
-    uso le o repositorio direto e a porta intermediaria deixou de existir.
-    """
+    """Generates example sentences, optionally using the user's saved vocabulary."""
 
     def __init__(
         self,
@@ -170,19 +165,17 @@ class GenerateSentences:
         if not entries:
             return []
 
-        # Prioriza termos do nivel do usuario; se nao houver, usa o vocabulario todo.
+        # Prioritize terms matching user level; fallback to all vocabulary if none match.
         same_level = [entry.term for entry in entries if entry.level == level]
         candidates = same_level or [entry.term for entry in entries]
         return random.sample(candidates, k=min(limit, len(candidates)))
 
 
 class BuildStudySession:
-    """Monta a sessao do dia com revisoes, geracao e modo escolhido.
+    """Assembles daily study session with reviews, generation, and chosen modes.
 
-    O gerador entra como opcional de proposito. Quando a chave da IA nao esta
-    configurada (ou o provedor falha), a sessao ainda acontece com o que ja existe
-    no banco: so quando nao ha absolutamente nada para estudar o erro sobe e vira
-    503. Isso evita que uma dependencia externa derrube a tela principal do app.
+    Generator is optional on purpose. When AI key is missing or fails, the session
+    still runs with existing cards in DB.
     """
 
     def __init__(
@@ -200,12 +193,12 @@ class BuildStudySession:
 
     async def execute(self, query: StudySessionQuery) -> StudySession:
         if query.modes == ():
-            raise ValidationError("Selecione pelo menos um modo de estudo.")
+            raise ValidationError("Select at least one study mode.")
         if query.modes is not None and any(mode.is_group for mode in query.modes):
-            raise ValidationError("VOCAB_MATCHING nao pode ser selecionado isoladamente.")
+            raise ValidationError("VOCAB_MATCHING cannot be selected alone.")
 
         logger.info(
-            "[session] iniciando | level=%s theme=%r limit=%d modes=%s reset=%s ai=%s",
+            "[session] starting | level=%s theme=%r limit=%d modes=%s reset=%s ai=%s",
             query.level.value,
             query.theme,
             query.limit,
@@ -214,11 +207,11 @@ class BuildStudySession:
             "on" if self._generator is not None else "off",
         )
 
-        # Sempre descarta cards gerados de sessoes anteriores que nunca foram respondidos
+        # Always discard unreviewed cards from previous sessions
         deleted = await self._cards.delete_unreviewed(level=query.level)
         if deleted:
             logger.info(
-                "[session] %d cards nao revisados de sessoes abandonadas descartados", deleted
+                "[session] %d unreviewed cards from abandoned sessions discarded", deleted
             )
 
         now = datetime.now(UTC)
@@ -229,11 +222,9 @@ class BuildStudySession:
             limit=query.limit,
             theme=requested_theme,
         )
-        # Cards vencidos contam como divida de revisao. O que vier depois disso e
-        # estudo adiantado ou frases novas.
         due_count = len(deck)
         logger.info(
-            "[session] cards vencidos no banco: %d/%d (theme=%r)",
+            "[session] due cards in DB: %d/%d (theme=%r)",
             due_count,
             query.limit,
             requested_theme,
@@ -242,16 +233,15 @@ class BuildStudySession:
         generated = 0
         if len(deck) < query.limit:
             missing = query.limit - len(deck)
-            logger.info("[session] faltam %d cards, chamando _top_up", missing)
+            logger.info("[session] missing %d cards, calling _top_up", missing)
             new_cards = await self._top_up(query, missing=missing)
             deck.extend(new_cards)
             generated = len(new_cards)
             due_count += generated
-            logger.info("[session] _top_up gerou %d cards novos", generated)
+            logger.info("[session] _top_up generated %d new cards", generated)
 
         if len(deck) < query.limit:
-            # Ainda faltando: adianta revisao de cards do nivel que nao venceram.
-            # Melhor estudar adiantado do que abrir o app numa tela vazia.
+            # Still missing: advance review of non-due cards at user level
             advanced = await self._cards.list_by_level(
                 level=query.level,
                 limit=query.limit - len(deck),
@@ -259,13 +249,13 @@ class BuildStudySession:
                 theme=requested_theme,
             )
             logger.info(
-                "[session] adiantando %d cards futuros para completar o deck",
+                "[session] advancing %d future cards to fill deck",
                 len(advanced),
             )
             deck.extend(advanced)
 
         logger.info(
-            "[session] deck final: %d cards (gerados=%d vencidos=%d)",
+            "[session] final deck: %d cards (generated=%d due=%d)",
             len(deck), generated, due_count,
         )
 
@@ -282,13 +272,11 @@ class BuildStudySession:
         )
 
     async def _top_up(self, query: StudySessionQuery, *, missing: int) -> list[StudyCard]:
-        """Gera cards novos para fechar a sessao. Falha de IA aqui nao e fatal."""
+        """Generates new cards to complete session. AI failure here is non-fatal."""
         if self._generator is None:
-            logger.warning("[top_up] gerador de IA nao configurado (generator=None), retornando []")
+            logger.warning("[top_up] AI generator not configured (generator=None), returning []")
             return []
 
-        # Normaliza uma unica vez: o mesmo tema precisa ir ao gerador e ao card.
-        # Assim, uma query so com espacos cai no tema surpresa antes de consumir IA.
         requested_theme = query.theme.strip() if query.theme is not None else ""
         theme = requested_theme or random_theme(self._rng)
         count = min(missing, self._max_per_generation)
@@ -299,16 +287,15 @@ class BuildStudySession:
             topic=theme,
         )
         logger.info(
-            "[top_up] solicitando %d frases ao Gemini | level=%s tema=%r",
+            "[top_up] requesting %d sentences from Gemini | level=%s theme=%r",
             count, query.level.value, theme,
         )
 
         try:
             sentences = await self._generator.generate(request)
-            logger.info("[top_up] Gemini retornou %d frases", len(sentences))
+            logger.info("[top_up] Gemini returned %d sentences", len(sentences))
         except UnavailableError as cause:
-            # Ja tem card vencido? Segue a sessao. Nada? _fail_empty levanta depois.
-            logger.warning("[top_up] geracao falhou, seguindo sem novos cards: %s", cause.message)
+            logger.warning("[top_up] generation failed, proceeding without new cards: %s", cause.message)
             return []
 
         known = await self._cards.existing_sentences(level=query.level)
@@ -322,23 +309,23 @@ class BuildStudySession:
             fresh.append(StudyCard.from_generated(sentence, theme=theme))
 
         if duplicates:
-            logger.info("[top_up] %d frase(s) descartada(s) por duplicata", duplicates)
+            logger.info("[top_up] %d sentence(s) discarded as duplicate", duplicates)
 
         saved = await self._cards.add_many(fresh)
-        logger.info("[top_up] %d cards novos salvos no banco", len(saved))
+        logger.info("[top_up] %d new cards saved to DB", len(saved))
         return saved
 
     def _fail_empty(self) -> None:
-        """Sem card e sem IA nao existe sessao possivel: explica qual e o caso."""
+        """No cards and no AI means no session possible."""
         if self._generator is None:
-            logger.error("[session] nenhum card disponivel e IA nao configurada")
+            logger.error("[session] no cards available and AI not configured")
             raise SentenceGeneratorNotConfigured
-        logger.error("[session] nenhum card disponivel mesmo com IA configurada")
-        raise SentenceGenerationFailed("nenhum card disponivel para estudar agora")
+        logger.error("[session] no cards available even with AI configured")
+        raise SentenceGenerationFailed("no cards available to study right now")
 
 
 class ResetStudySession:
-    """Descarta cards gerados que nunca foram respondidos (sessao abandonada)."""
+    """Discards generated cards that were never reviewed (abandoned session)."""
 
     def __init__(self, cards: StudyCardRepository) -> None:
         self._cards = cards
@@ -346,7 +333,7 @@ class ResetStudySession:
     async def execute(self, command: ResetStudySessionCommand) -> int:
         deleted = await self._cards.delete_unreviewed(level=command.level)
         logger.info(
-            "[session] reset explicito: %d cards nao revisados descartados para level=%s",
+            "[session] explicit reset: %d unreviewed cards discarded for level=%s",
             deleted,
             command.level.value,
         )
@@ -354,7 +341,7 @@ class ResetStudySession:
 
 
 class ReviewStudyCard:
-    """Aplica a nota da revisao e reagenda o card."""
+    """Applies review grade and reschedules card."""
 
     def __init__(self, repository: StudyCardRepository) -> None:
         self._repository = repository
@@ -368,20 +355,14 @@ class ReviewStudyCard:
 
 
 class GetStudyHistory:
-    """Retorna as frases e palavras ja vistas pelo usuario, paginadas.
-
-    Frases: todos os cards com reviewed_at IS NOT NULL, ordenados do mais
-    recente para o mais antigo.
-    Palavras: focus_term unicas vistas, com a traducao do ultimo card revisado,
-    ordenadas pela revisao mais recente.
-    """
+    """Returns paginated sentences and words seen by user."""
 
     def __init__(self, repository: StudyCardRepository) -> None:
         self._repository = repository
 
     async def execute(self, query: StudyHistoryQuery) -> StudyHistoryPage:
         logger.info(
-            "[history] buscando historico | limit=%d offset=%d",
+            "[history] fetching history | limit=%d offset=%d",
             query.limit,
             query.offset,
         )
@@ -396,7 +377,7 @@ class GetStudyHistory:
             for term, translation in word_rows
         ]
         logger.info(
-            "[history] encontradas %d frases (total=%d) e %d palavras unicas (total=%d)",
+            "[history] found %d sentences (total=%d) and %d unique words (total=%d)",
             len(sentences),
             sentences_total,
             len(words),
@@ -413,14 +394,7 @@ class GetStudyHistory:
 
 
 class SaveSessionWords:
-    """Traduz palavras de uma sessao e persiste no historico individual.
-
-    Fluxo:
-    1. Recebe lista de palavras em ingles (focus_terms da sessao).
-    2. Deduplica e normaliza.
-    3. Traduz via WordTranslator (deep-translator).
-    4. Persiste via SeenWordsRepository (upsert: nova palavra ou incrementa contador).
-    """
+    """Translates session words and persists in individual history."""
 
     def __init__(
         self,
@@ -431,7 +405,6 @@ class SaveSessionWords:
         self._repo = seen_words_repo
 
     async def execute(self, command: SaveSessionWordsCommand) -> SaveSessionWordsResult:
-        # Deduplica preservando a grafia original (casefold so para unicidade).
         unique: dict[str, str] = {}
         for word in command.words:
             cleaned = word.strip()
@@ -442,8 +415,6 @@ class SaveSessionWords:
         if not words:
             return SaveSessionWordsResult(saved=0, translated=0)
 
-        # Traducoes ja conhecidas (vindas do vocabulario gerado pela IA no card),
-        # indexadas por casefold para casar com a deduplicacao acima.
         provided: dict[str, str] = {}
         for term, translation in command.translations.items():
             cleaned_term = term.strip()
@@ -460,34 +431,28 @@ class SaveSessionWords:
             else:
                 missing.append(word)
 
-        # Tradutor externo so para o que faltou. Ele e limitado por rate limit
-        # (Google free tier), entao nunca deve ser o unico caminho: sem o fallback
-        # da IA, uma sessao inteira ficaria sem palavras no historico.
         if missing:
             logger.info(
-                "[session_words] %d ja traduzidas pela IA, %d via deep-translator",
+                "[session_words] %d translated by AI, %d via deep-translator",
                 len(translations), len(missing),
             )
             fallback = await self._translator.translate_many(missing)
             translations.update(fallback)
         else:
             logger.info(
-                "[session_words] %d palavras traduzidas pela IA (sem chamada externa)",
+                "[session_words] %d words translated by AI (no external call)",
                 len(translations),
             )
 
         translated = len(translations)
 
-        # Palavras sem traducao ficam de fora do upsert.
         saved = await self._repo.upsert_many(translations)
         logger.info(
-            "[session_words] %d/%d palavras salvas no banco", saved, len(words)
+            "[session_words] %d/%d words saved to DB", saved, len(words)
         )
         return SaveSessionWordsResult(saved=saved, translated=translated)
 
 
-# Protocolo local para desacoplar o use case do adaptador concreto.
-# Evita import circular entre application e infrastructure.
 from typing import Protocol  # noqa: E402
 
 

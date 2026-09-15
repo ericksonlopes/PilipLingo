@@ -1,12 +1,7 @@
 /**
- * Persiste as configuracoes do menu de preparacao da sessao no localStorage.
+ * Persists study setup menu preferences in localStorage.
  *
- * Isso permite que o usuario reabra o app ou a aba e encontre os modos, tema e
- * limite ja selecionados, sem precisar configurar tudo de novo.
- *
- * Nao persiste a sessao em andamento (fila de exercicios) para nao servir
- * exercicios velhos ou correcoes desatualizadas. Ao reabrir, uma nova sessao
- * e montada com as mesmas configuracoes salvas.
+ * Allows student to return to app with their selected modes, theme, and limit intact.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -37,7 +32,6 @@ function readSetup(): StudySetup | null {
     }
     return {
       selectedModes: obj.selectedModes as ExerciseMode[],
-      // Garante que string vazia salva em versões antigas vira null.
       selectedTheme:
         typeof obj.selectedTheme === "string" && obj.selectedTheme.trim() !== ""
           ? obj.selectedTheme
@@ -53,7 +47,7 @@ function writeSetup(setup: StudySetup): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(setup));
   } catch {
-    // Storage bloqueado (modo privado) — ignora silenciosamente.
+    // Storage blocked (private mode) — ignore silently.
   }
 }
 
@@ -69,12 +63,9 @@ export function usePersistedStudySetup(allModes: ExerciseMode[]) {
   );
   const [sessionLimit, setSessionLimit] = useState<number>(() => {
     const saved = readSetup()?.sessionLimit ?? DEFAULT_LIMIT;
-    // Rejeita valor salvo que nao e uma opcao valida.
     return VALID_LIMITS.has(saved) ? saved : DEFAULT_LIMIT;
   });
 
-  // Persiste sempre que qualquer opcao mudar, mas nao no mount inicial
-  // (evita gravar valores parciais antes das opcoes chegarem do backend).
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -84,15 +75,13 @@ export function usePersistedStudySetup(allModes: ExerciseMode[]) {
     writeSetup({ selectedModes, selectedTheme, sessionLimit });
   }, [selectedModes, selectedTheme, sessionLimit]);
 
-  // Quando as opcoes disponiveis chegam do backend, garante que nao ha modo
-  // salvo que nao existe mais.
   useEffect(() => {
     if (allModes.length === 0) return;
     setSelectedModes((current) => {
       const valid = current.filter((m) => allModes.includes(m));
       return valid.length > 0 ? valid : allModes;
     });
-  }, [allModes.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allModes.join(",")]);
 
   return {
     selectedModes,

@@ -1,12 +1,12 @@
-"""Validador de frases usando spaCy en_core_web_sm.
+"""Sentence validator using spaCy en_core_web_sm.
 
-Tres regras em sequencia:
-1. Presenca whole-word do focus_term (tokenizacao spaCy, case-insensitive).
-2. Estrutura sujeito-verbo: ROOT verbal com dependente nsubj/nsubjpass.
-3. Concordancia sujeito-verbo: morph Number+Person devem coincidir.
+Three sequential rules:
+1. Whole-word presence of focus_term (spaCy tokenization, case-insensitive).
+2. Subject-verb structure: verbal ROOT with nsubj/nsubjpass dependent.
+3. Subject-verb agreement: morph Number+Person matching.
 
-O servico nao depende de FastAPI, SQLAlchemy nem de nenhuma entidade de dominio.
-Recebe strings e devolve um dataclass puro.
+Service does not depend on FastAPI, SQLAlchemy, or domain entities.
+Receives strings and returns pure dataclasses.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from spacy.language import Language
 
 @dataclass(frozen=True, slots=True)
 class ValidationResult:
-    """Resultado imutavel de uma validacao de frase."""
+    """Immutable sentence validation result."""
 
     valid: bool
     reason: Literal["missing_term", "no_subject_verb", "agreement_error"] | None = None
@@ -29,10 +29,9 @@ class ValidationResult:
 
 
 class SentenceValidatorService:
-    """Valida frases em ingles com tres regras linguisticas progressivas.
+    """Validates English sentences with three progressive linguistic rules.
 
-    Recebe a instancia do modelo spaCy como argumento do construtor para
-    permitir injecao de dependencia em testes.
+    Receives spaCy model instance in constructor for dependency injection in tests.
     """
 
     def __init__(self, nlp: Language) -> None:
@@ -40,33 +39,29 @@ class SentenceValidatorService:
 
     @classmethod
     def load(cls) -> SentenceValidatorService:
-        """Carrega o modelo en_core_web_sm e devolve uma instancia pronta.
-
-        Falha ruidosamente se o modelo nao estiver instalado, impedindo o
-        servidor de subir com configuracao incompleta.
-        """
+        """Loads en_core_web_sm model and returns a ready instance."""
         try:
             nlp = spacy.load("en_core_web_sm")
         except OSError as exc:
             raise RuntimeError(
-                "Modelo spaCy nao encontrado. "
-                "Execute: uv run python -m spacy download en_core_web_sm"
+                "spaCy model not found. "
+                "Run: uv run python -m spacy download en_core_web_sm"
             ) from exc
         return cls(nlp)
 
     def validate(self, sentence: str, focus_term: str) -> ValidationResult:
-        """Aplica as tres regras em ordem; retorna no primeiro erro."""
+        """Applies three rules in order; returns on first failure."""
         doc = self._nlp(sentence)
 
-        # --- Regra 1: presenca whole-word (case-insensitive) ---
+        # --- Rule 1: whole-word presence (case-insensitive) ---
         if not self._contains_term(doc, focus_term, sentence):
             return ValidationResult(
                 valid=False,
                 reason="missing_term",
-                feedback=f"Sua frase precisa conter a palavra \u00ab{focus_term}\u00bb.",
+                feedback=f"Sua frase precisa conter a palavra «{focus_term}».",
             )
 
-        # --- Regra 2: ROOT verbal com sujeito ---
+        # --- Rule 2: verbal ROOT with subject ---
         root = next(
             (t for t in doc if t.dep_ == "ROOT" and t.pos_ in {"VERB", "AUX"}),
             None,
@@ -77,10 +72,10 @@ class SentenceValidatorService:
             return ValidationResult(
                 valid=False,
                 reason="no_subject_verb",
-                feedback="A frase parece incompleta \u2014 inclua sujeito e verbo.",
+                feedback="A frase parece incompleta — inclua sujeito e verbo.",
             )
 
-        # --- Regra 3: concordancia morfologica (so quando ambos os lados tem features) ---
+        # --- Rule 3: morphological agreement ---
         subj = next(
             c for c in root.children if c.dep_ in {"nsubj", "nsubjpass"}
         )
@@ -96,14 +91,10 @@ class SentenceValidatorService:
             return ValidationResult(
                 valid=False,
                 reason="agreement_error",
-                feedback="Verifique a concordancia entre sujeito e verbo.",
+                feedback="Verifique a concordância entre sujeito e verbo.",
             )
 
         return ValidationResult(valid=True)
-
-    # ------------------------------------------------------------------
-    # Helpers internos
-    # ------------------------------------------------------------------
 
     def _contains_term(
         self,
@@ -111,15 +102,12 @@ class SentenceValidatorService:
         focus_term: str,
         sentence: str,
     ) -> bool:
-        """Verifica presenca whole-word com dois caminhos.
+        """Verifies whole-word presence with two paths.
 
-        Caminho 1 — tokenizacao spaCy (termo de um token ou varios): percorre
-        a sequencia de tokens e compara janelas de tamanho len(term_tokens).
-
-        Caminho 2 — regex (fallback para termos multi-token que a tokenizacao
-        nao alinha perfeitamente, ex.: "look forward to").
+        Path 1: spaCy tokenization (single or multi-token term).
+        Path 2: regex fallback for multi-token terms.
         """
-        from spacy.tokens import Doc  # local para nao poluir o namespace do modulo
+        from spacy.tokens import Doc
 
         if not isinstance(doc, Doc):  # pragma: no cover
             return False
@@ -134,7 +122,6 @@ class SentenceValidatorService:
                 if doc_texts[i : i + n] == term_texts:
                     return True
 
-        # Fallback regex whole-word para multi-token
         escaped = re.escape(focus_term.lower())
         pattern = re.compile(rf"(?<!\w){escaped}(?!\w)", re.IGNORECASE)
         return bool(pattern.search(sentence))

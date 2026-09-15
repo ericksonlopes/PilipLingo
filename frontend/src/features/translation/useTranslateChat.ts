@@ -1,6 +1,6 @@
 /**
- * Hook de estado do chat de tradução.
- * Cada "turno" é uma mensagem do usuário + o resultado da análise (ou erro).
+ * State hook for the translation chat.
+ * Each turn contains user input + structural analysis result (or error).
  */
 import { useCallback, useRef, useState } from "react";
 
@@ -12,7 +12,7 @@ export interface TranslateTurn {
   userText: string;
   result: TranslationResult | null;
   error: string | null;
-  /** Ainda aguardando resposta da API */
+  /** Still waiting for API response */
   pending: boolean;
 }
 
@@ -34,7 +34,6 @@ export function useTranslateChat(): UseTranslateChatReturn {
 
     const id = `turn-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-    // Insere turno pendente imediatamente (mensagem otimista)
     const pending: TranslateTurn = {
       id,
       userText: trimmed,

@@ -5,13 +5,12 @@ import type { AuthCredentials, AuthUser } from "../lib/types";
 
 interface AuthState {
   user: AuthUser | null;
-  /** True enquanto validamos o token guardado ao abrir o app. */
+  /** True while validating saved token on app launch. */
   loading: boolean;
 }
 
 /**
- * Sessao do usuario. O token vive no localStorage (via camada de api.ts); ao
- * abrir o app, revalidamos com /auth/me para nao confiar em um token expirado.
+ * User authentication session hook.
  */
 export function useAuth() {
   const [state, setState] = useState<AuthState>({ user: null, loading: true });
@@ -31,7 +30,6 @@ export function useAuth() {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-        // Token invalido/expirado: limpa e cai para a tela de login.
         setAuthToken(null);
         setState({ user: null, loading: false });
       });

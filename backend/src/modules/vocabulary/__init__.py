@@ -1,6 +1,6 @@
-"""Fatia `vocabulary`: palavras/expressoes em ingles, traducoes e frases de exemplo.
+"""Vocabulary slice: English words/expressions, translations, and example sentences.
 
-Concentra tanto a persistencia do vocabulario quanto a geracao de frases por IA
-(antes na fatia `sentences`), porque as duas capacidades giram em volta do mesmo
-agregado: o termo que o usuario esta aprendendo.
+Combines vocabulary persistence and AI sentence generation (formerly in the
+`sentences` slice) because both capabilities revolve around the same aggregate:
+the term the user is learning.
 """

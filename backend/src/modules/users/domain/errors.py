@@ -1,4 +1,4 @@
-"""Erros especificos da fatia users."""
+"""Specific errors for users slice."""
 
 from __future__ import annotations
 
@@ -6,18 +6,18 @@ from shared.errors import ConflictError, UnauthorizedError
 
 
 class UsernameAlreadyTaken(ConflictError):
-    """Ja existe um usuario com esse nome."""
+    """User with this username already exists."""
 
     code = "username_taken"
 
 
 class InvalidCredentials(UnauthorizedError):
-    """Usuario ou senha incorretos."""
+    """Incorrect username or password."""
 
     code = "invalid_credentials"
 
 
 class InvalidToken(UnauthorizedError):
-    """Token ausente, expirado ou malformado."""
+    """Missing, expired, or malformed token."""
 
     code = "invalid_token"

@@ -111,8 +111,8 @@ button {
   z-index: 10;
   display: flex;
   justify-content: center;
-  gap: 8px;
-  padding: 6px 8px calc(var(--safe-bottom) + 6px);
+  gap: 6px;
+  padding: 6px 6px calc(var(--safe-bottom) + 6px);
   background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
@@ -131,6 +131,7 @@ button {
   color: var(--text-muted);
   font-size: 0.72rem;
   text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 
 .tab svg {
@@ -138,9 +139,84 @@ button {
   height: 22px;
 }
 
+.tab__icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.tab__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tab__badge {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 1.5px 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 22%, var(--bg-elevated));
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 .tab--active {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.tab--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+.tab--disabled:hover {
+  background: transparent;
+}
+
+@media (max-width: 380px) {
+  .tab-bar {
+    gap: 3px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .tab {
+    padding: 6px 2px;
+    font-size: 0.66rem;
+  }
+
+  .tab svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tab__icon-wrap {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tab__badge {
+    font-size: 0.46rem;
+    padding: 1px 3px;
+    top: -5px;
+  }
 }
 
 /* ---------- pagina ---------- */
@@ -2409,24 +2485,54 @@ button {
   line-height: 1.4;
 }
 
-/* Replay da frase do aluno após resolução */
+/* Replay da frase do aluno após resolução (card clicável) */
 .sentence-builder__replay {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
-  align-items: center;
+  width: 100%;
   margin-top: 8px;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.sentence-builder__replay:hover {
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+.sentence-builder__replay:active {
+  transform: scale(0.99);
+}
+
+.sentence-builder__replay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.sentence-builder__replay-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.sentence-builder__replay:hover .sentence-builder__replay-icon {
+  transform: scale(1.15);
 }
 
 .sentence-builder__student-sentence {
-  flex: 1;
   font-size: 0.95rem;
   font-style: italic;
   line-height: 1.4;
+  word-break: break-word;
+  color: var(--text);
 }
 
 /* ---------- telas maiores ---------- */

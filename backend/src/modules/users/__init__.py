@@ -1,1 +1,1 @@
-"""Fatia vertical de usuarios e autenticacao."""
+"""Vertical slice for users and authentication."""

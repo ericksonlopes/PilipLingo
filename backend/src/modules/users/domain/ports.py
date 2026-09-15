@@ -1,6 +1,6 @@
-"""Portas (interfaces) do dominio users.
+"""Ports (interfaces) for users domain.
 
-O dominio declara o que precisa; a infraestrutura fornece os adaptadores.
+The domain declares what it needs; infrastructure provides adapters.
 """
 
 from __future__ import annotations
@@ -12,40 +12,40 @@ from modules.users.domain.entities import User
 
 
 class UserRepository(ABC):
-    """Porta de persistencia de usuarios."""
+    """User persistence port."""
 
     @abstractmethod
     async def add(self, user: User) -> User:
-        """Persiste um novo usuario."""
+        """Persists a new user."""
 
     @abstractmethod
     async def get_by_id(self, user_id: UUID) -> User | None:
-        """Busca por identificador."""
+        """Finds user by identifier."""
 
     @abstractmethod
     async def find_by_username(self, username: str) -> User | None:
-        """Busca pelo nome de usuario (case-insensitive)."""
+        """Finds user by username (case-insensitive)."""
 
 
 class PasswordHasher(ABC):
-    """Porta de hashing de senha. Mantem o dominio livre de bcrypt/passlib."""
+    """Password hashing port. Keeps domain free of bcrypt/passlib dependencies."""
 
     @abstractmethod
     def hash(self, plain_password: str) -> str:
-        """Gera o hash da senha em texto puro."""
+        """Generates hash from plain text password."""
 
     @abstractmethod
     def verify(self, plain_password: str, password_hash: str) -> bool:
-        """Confere a senha em texto puro contra o hash guardado."""
+        """Verifies plain text password against saved hash."""
 
 
 class TokenService(ABC):
-    """Porta de emissao/validacao de tokens de acesso."""
+    """Access token issuing and validation port."""
 
     @abstractmethod
     def issue(self, user: User) -> str:
-        """Emite um token assinado que identifica o usuario."""
+        """Issues a signed token identifying the user."""
 
     @abstractmethod
     def subject(self, token: str) -> UUID:
-        """Extrai o id do usuario do token. Levanta InvalidToken se invalido."""
+        """Extracts user ID from token. Raises InvalidToken if invalid."""

@@ -1,4 +1,4 @@
-"""Infraestrutura de persistencia: engine async, sessao e Base declarativa."""
+"""Persistence infrastructure: async engine, session and declarative Base."""
 
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ from sqlalchemy.orm import DeclarativeBase
 
 from shared.config import Settings, get_settings
 
-# Nomes deterministas de constraints: obrigatorio para o Alembic conseguir
-# alterar/remover constraints no SQLite (batch mode).
+# Deterministic constraint naming convention: required for Alembic to alter/drop
+# constraints in SQLite (batch mode).
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -29,13 +29,13 @@ NAMING_CONVENTION = {
 
 
 class Base(DeclarativeBase):
-    """Base declarativa unica da aplicacao (metadata usada pelo Alembic)."""
+    """Single declarative base for the application (metadata used by Alembic)."""
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
 def ensure_sqlite_dir(settings: Settings | None = None) -> None:
-    """Cria o diretorio do arquivo SQLite antes de abrir a conexao."""
+    """Creates the SQLite file directory before opening the connection."""
     settings = settings or get_settings()
     sqlite_path = settings.sqlite_path
     if sqlite_path is not None:
@@ -71,7 +71,7 @@ def create_engine(settings: Settings | None = None) -> AsyncEngine:
 
 @lru_cache
 def get_engine() -> AsyncEngine:
-    """Engine unica por processo."""
+    """Single engine per process."""
     return create_engine()
 
 
@@ -85,9 +85,9 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
-    """Dependencia FastAPI: uma sessao (e uma transacao) por request.
+    """FastAPI dependency: one session (and transaction) per request.
 
-    Commit no fim do request quando nada falhou, rollback em caso de excecao.
+    Commits at the end of the request when nothing failed, rollbacks on exception.
     """
     session_factory = get_session_factory()
     async with session_factory() as session:
@@ -101,6 +101,6 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 async def dispose_engine() -> None:
-    """Fecha o pool de conexoes (shutdown da aplicacao)."""
+    """Closes connection pool (application shutdown)."""
     engine = get_engine()
     await engine.dispose()

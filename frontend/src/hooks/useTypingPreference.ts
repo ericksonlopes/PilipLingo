@@ -1,9 +1,6 @@
 /**
- * Guarda a preferencia do aluno entre montar a frase por blocos ou digita-la
- * com o teclado, nos modos AUDIO_DICTATION e BLOCK_TRANSLATION.
- *
- * A escolha vale para toda a sessao (e persiste entre sessoes no localStorage),
- * para que quem prefere teclado nao precise alternar em cada exercicio.
+ * Stores student preference between block selection and keyboard typing
+ * in AUDIO_DICTATION and BLOCK_TRANSLATION modes.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -28,7 +25,7 @@ export function useTypingPreference() {
     try {
       localStorage.setItem(STORAGE_KEY, inputMode);
     } catch {
-      // Storage bloqueado (modo privado) — ignora silenciosamente.
+      // Private mode / storage blocked: ignore silently.
     }
   }, [inputMode]);
 

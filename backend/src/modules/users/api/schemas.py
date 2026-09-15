@@ -1,4 +1,4 @@
-"""Contratos HTTP (Pydantic) da fatia users."""
+"""HTTP contracts (Pydantic) for users slice."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(
         min_length=MIN_PASSWORD_LENGTH,
         max_length=MAX_PASSWORD_LENGTH,
-        examples=["senha123"],
+        examples=["password123"],
     )
 
 
@@ -35,7 +35,7 @@ class LoginRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     username: str = Field(min_length=1, max_length=MAX_USERNAME_LENGTH, examples=["maria"])
-    password: str = Field(min_length=1, max_length=MAX_PASSWORD_LENGTH, examples=["senha123"])
+    password: str = Field(min_length=1, max_length=MAX_PASSWORD_LENGTH, examples=["password123"])
 
 
 class UserResponse(BaseModel):
@@ -49,7 +49,7 @@ class UserResponse(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    """Token + dados do usuario, devolvidos no register e no login."""
+    """Token + user data returned on register and login."""
 
     access_token: str
     token_type: str = "bearer"

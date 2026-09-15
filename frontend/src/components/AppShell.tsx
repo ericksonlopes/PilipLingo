@@ -13,15 +13,24 @@ interface AppShellProps {
   onLogout?: () => void;
 }
 
-// Quatro abas principais: Estudar, Chat, Traduzir e Histórico à direita.
-const TABS = [
+type TabIconName = "sparkle" | "book" | "chat" | "translate" | "history";
+
+interface TabItem {
+  to?: string;
+  label: string;
+  icon: TabIconName;
+  disabled?: boolean;
+  badge?: string;
+}
+
+// Abas da barra de navegação: Estudar, Histórias (em breve), Chat, Traduzir e Histórico.
+const TABS: readonly TabItem[] = [
   { to: "/", label: "Estudar", icon: "sparkle" },
+  { label: "Histórias", icon: "book", disabled: true, badge: "Em breve" },
   { to: "/chat", label: "Chat", icon: "chat" },
   { to: "/traduzir", label: "Traduzir", icon: "translate" },
   { to: "/historico", label: "Histórico", icon: "history" },
 ] as const;
-
-type IconName = (typeof TABS)[number]["icon"];
 
 /** Layout mobile-first: header compacto + conteudo scrollavel + tab bar fixa. */
 export default function AppShell({
@@ -117,23 +126,43 @@ export default function AppShell({
       </main>
 
       <nav className="tab-bar" aria-label="Navegacao principal">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.to === "/"}
-            className={({ isActive }) => `tab${isActive ? " tab--active" : ""}`}
-          >
-            <TabIcon name={tab.icon} />
-            <span>{tab.label}</span>
-          </NavLink>
-        ))}
+        {TABS.map((tab) =>
+          tab.disabled ? (
+            <button
+              key={tab.label}
+              type="button"
+              className="tab tab--disabled"
+              disabled
+              aria-disabled="true"
+              aria-label={`${tab.label} (${tab.badge || "desabilitado"})`}
+              title={`${tab.label} (${tab.badge || "desabilitado"})`}
+            >
+              <div className="tab__icon-wrap">
+                <TabIcon name={tab.icon} />
+                {tab.badge && <span className="tab__badge">{tab.badge}</span>}
+              </div>
+              <span className="tab__label">{tab.label}</span>
+            </button>
+          ) : (
+            <NavLink
+              key={tab.to}
+              to={tab.to!}
+              end={tab.to === "/"}
+              className={({ isActive }) => `tab${isActive ? " tab--active" : ""}`}
+            >
+              <div className="tab__icon-wrap">
+                <TabIcon name={tab.icon} />
+              </div>
+              <span className="tab__label">{tab.label}</span>
+            </NavLink>
+          )
+        )}
       </nav>
     </div>
   );
 }
 
-function TabIcon({ name }: { name: IconName }) {
+function TabIcon({ name }: { name: TabIconName }) {
   if (name === "history") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -191,6 +220,29 @@ function TabIcon({ name }: { name: IconName }) {
         />
         <path
           d="M14 5l7 7-2 2M17 12l-3 3"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "book") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <path
+          d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
           stroke="currentColor"
           strokeWidth="1.8"
           strokeLinecap="round"

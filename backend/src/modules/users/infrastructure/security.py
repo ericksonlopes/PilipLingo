@@ -1,4 +1,4 @@
-"""Adaptadores de seguranca: hashing de senha (bcrypt) e tokens (JWT)."""
+"""Security adapters: password hashing (bcrypt) and tokens (JWT)."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from modules.users.domain.entities import User
 from modules.users.domain.errors import InvalidToken
 from modules.users.domain.ports import PasswordHasher, TokenService
 
-# bcrypt so aceita ate 72 bytes: cortar aqui evita erro e mantem o comportamento
-# estavel entre gerar e verificar.
+# bcrypt only accepts up to 72 bytes: truncating here avoids error and keeps
+# behavior consistent between generating and verifying.
 _BCRYPT_MAX_BYTES = 72
 
 
@@ -23,7 +23,7 @@ def _truncate(plain_password: str) -> bytes:
 
 
 class BcryptPasswordHasher(PasswordHasher):
-    """Hash de senha com bcrypt. Sem dependencia externa alem da lib nativa."""
+    """Password hashing with bcrypt. No external dependency besides native lib."""
 
     def hash(self, plain_password: str) -> str:
         hashed = bcrypt.hashpw(_truncate(plain_password), bcrypt.gensalt())
@@ -33,12 +33,12 @@ class BcryptPasswordHasher(PasswordHasher):
         try:
             return bcrypt.checkpw(_truncate(plain_password), password_hash.encode("utf-8"))
         except ValueError:
-            # Hash malformado no banco: trata como senha invalida em vez de estourar.
+            # Malformed hash in DB: treat as invalid password instead of crashing.
             return False
 
 
 class JwtTokenService(TokenService):
-    """Emite/valida tokens JWT assinados com HS256."""
+    """Issues/validates JWT tokens signed with HS256."""
 
     def __init__(
         self,
@@ -66,4 +66,4 @@ class JwtTokenService(TokenService):
             payload = jwt.decode(token, self._secret, algorithms=[self._algorithm])
             return UUID(str(payload["sub"]))
         except (jwt.PyJWTError, KeyError, ValueError) as exc:
-            raise InvalidToken("Sessao invalida ou expirada.") from exc
+            raise InvalidToken("Invalid or expired session.") from exc

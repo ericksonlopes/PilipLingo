@@ -10,7 +10,7 @@ interface AuthPageProps {
   onRegister: (credentials: AuthCredentials) => Promise<void>;
 }
 
-/** Porta de entrada do app: login e cadastro simples de usuario + senha. */
+/** Entry screen: login and simple user registration. */
 export default function AuthPage({ onLogin, onRegister }: AuthPageProps) {
   const [mode, setMode] = useState<Mode>("login");
   const [username, setUsername] = useState("");
@@ -34,7 +34,7 @@ export default function AuthPage({ onLogin, onRegister }: AuthPageProps) {
       setError(
         cause instanceof ApiError
           ? cause.message
-          : "Nao foi possivel entrar agora. Tente de novo.",
+          : "Não foi possível entrar agora. Tente de novo.",
       );
       setSubmitting(false);
     }
@@ -53,14 +53,14 @@ export default function AuthPage({ onLogin, onRegister }: AuthPageProps) {
         </h2>
         <p className="level-picker__text">
           {isRegister
-            ? "Escolha um usuario e uma senha. Seu vocabulario fica so seu."
-            : "Use seu usuario e senha para continuar de onde parou."}
+            ? "Escolha um usuário e uma senha. Seu vocabulário fica só seu."
+            : "Use seu usuário e senha para continuar de onde parou."}
         </p>
       </header>
 
       <form className="form" onSubmit={handleSubmit}>
         <label className="field">
-          <span className="field__label">Usuario</span>
+          <span className="field__label">Usuário</span>
           <input
             className="field__input"
             type="text"
@@ -109,7 +109,7 @@ export default function AuthPage({ onLogin, onRegister }: AuthPageProps) {
         className="btn btn--ghost btn--block"
         onClick={() => switchMode(isRegister ? "login" : "register")}
       >
-        {isRegister ? "Ja tenho conta. Entrar" : "Criar uma conta nova"}
+        {isRegister ? "Já tenho conta. Entrar" : "Criar uma conta nova"}
       </button>
     </section>
   );

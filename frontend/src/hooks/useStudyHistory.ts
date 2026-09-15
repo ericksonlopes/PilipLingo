@@ -13,9 +13,8 @@ interface UseStudyHistoryResult {
 }
 
 /**
- * Carrega o historico de frases e palavras vistas pelo usuario.
- * O fetch so ocorre quando `enabled` e true, evitando chamadas desnecessarias
- * enquanto a aba de historico nao esta aberta.
+ * Fetches history of sentences and words seen by user.
+ * Fetch occurs only when `enabled` is true.
  */
 export function useStudyHistory(enabled: boolean): UseStudyHistoryResult {
   const [history, setHistory] = useState<StudyHistoryPage | null>(null);
@@ -50,7 +49,7 @@ export function useStudyHistory(enabled: boolean): UseStudyHistoryResult {
       .catch((cause: unknown) => {
         if (!active || controller.signal.aborted) return;
         setError(
-          cause instanceof ApiError ? cause.message : "Nao foi possivel carregar o historico.",
+          cause instanceof ApiError ? cause.message : "Não foi possível carregar o histórico.",
         );
       })
       .finally(() => {

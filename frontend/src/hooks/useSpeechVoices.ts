@@ -14,7 +14,7 @@ interface UseSpeechVoicesResult {
   selectVoice: (voiceUri: string) => void;
 }
 
-/** Mantém a lista de vozes inglesas e a preferência local do usuário sincronizadas. */
+/** Keeps English voices list and user local preference in sync. */
 export function useSpeechVoices(): UseSpeechVoicesResult {
   const isSupported = isSpeechSupported();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(() => getEnglishVoices());

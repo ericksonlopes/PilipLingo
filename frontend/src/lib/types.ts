@@ -35,13 +35,13 @@ export interface UpdateVocabularyEntryInput {
   tags?: string[];
 }
 
-/** Formato de erro devolvido pelo backend (shared/api/error_handlers.py). */
+/** Error payload returned by backend (shared/api/error_handlers.py). */
 export interface ApiErrorBody {
   error?: { code?: string; message?: string };
   detail?: unknown;
 }
 
-/* ---------- autenticacao ---------- */
+/* ---------- authentication ---------- */
 
 export interface AuthUser {
   id: string;
@@ -49,7 +49,7 @@ export interface AuthUser {
   created_at: string;
 }
 
-/** Resposta de /auth/register e /auth/login. */
+/** Response from /auth/register and /auth/login. */
 export interface AuthResult {
   access_token: string;
   token_type: string;
@@ -61,14 +61,14 @@ export interface AuthCredentials {
   password: string;
 }
 
-/** Um bloco logico da frase: a unidade da Analise Estrutural. */
+/** Logical sentence block: unit of Structural Analysis. */
 export interface SentenceChunk {
   text: string;
   role: string;
   explanation: string;
 }
 
-/** Um item de vocabulario da frase (palavra/expressao + traducao). */
+/** Vocabulary item from sentence (word/phrase + translation). */
 export interface SentenceVocabulary {
   term: string;
   translation: string;
@@ -103,7 +103,7 @@ export interface AiStatus {
   max_sentences_per_request: number;
 }
 
-/* ---------- estudo ---------- */
+/* ---------- study ---------- */
 
 export const EXERCISE_MODES = [
   "TYPING_CLOZE",
@@ -155,9 +155,8 @@ export interface StudyCard {
 }
 
 /**
- * Um card ja sorteado para um dos cinco modos. `answer` vem do backend porque a
- * correcao acontece aqui no aparelho (digitacao, ordem dos blocos e Speech
- * Recognition do navegador).
+ * A card prepared for one of the exercise modes. `answer` comes from backend
+ * because grading happens on device (typing, block order, Speech Recognition).
  */
 export interface StudyExercise {
   mode: ExerciseMode;
@@ -186,7 +185,7 @@ export interface ReviewResult {
   interval_days: number;
 }
 
-// ---------- historico ----------
+// ---------- history ----------
 
 export interface SeenWord {
   term: string;
@@ -299,36 +298,36 @@ export interface CreateConversationInput {
   goals?: string[] | null;
 }
 
-// ---------- tradução avançada ----------
+// ---------- advanced translation ----------
 
 export interface TranslationChunk {
   text: string;
-  /** Papel gramatical em inglês, ex.: "Present Perfect", "Subject". */
+  /** Grammatical role in English, e.g., "Present Perfect", "Subject". */
   role: string;
-  /** Explicação do bloco em português. */
+  /** Block explanation in Portuguese. */
   explanation: string;
 }
 
 export interface GrammarCorrection {
-  /** Fragmento exatamente como o usuário escreveu (errado). */
+  /** Exact fragment written by user (erroneous). */
   original: string;
-  /** Forma correta. */
+  /** Correct form. */
   corrected: string;
-  /** Explicação em português de por que está errado. */
+  /** Explanation in Portuguese of why it is wrong. */
   explanation: string;
 }
 
 export interface TranslationResult {
   original: string;
   translation: string;
-  /** A frase sempre em inglês (base dos chunks), independente da direção. */
+  /** Phrase always in English (base of chunks), regardless of direction. */
   english_phrase: string;
-  /** A frase sempre em português. */
+  /** Phrase always in Portuguese. */
   portuguese_phrase: string;
-  /** Correções gramaticais/ortográficas — lista vazia se a entrada estava correta ou era PT. */
+  /** Grammar/spelling corrections — empty list if input was correct or PT. */
   corrections: GrammarCorrection[];
   chunks: TranslationChunk[];
-  /** 1–3 frases em português explicando como os blocos formam o sentido. */
+  /** 1–3 sentences in Portuguese explaining how blocks combine meaning. */
   assembly_summary: string;
 }
 

@@ -1,4 +1,4 @@
-"""Schemas HTTP (Pydantic) da fatia vocabulary."""
+"""HTTP Schemas (Pydantic) for vocabulary slice."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class VocabularyEntryCreateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     term: str = Field(min_length=1, max_length=120, examples=["breakthrough"])
-    translation: str = Field(min_length=1, max_length=240, examples=["avanco, descoberta"])
+    translation: str = Field(min_length=1, max_length=240, examples=["avanço, descoberta"])
     example: str | None = Field(default=None, max_length=500)
     level: ProficiencyLevel = ProficiencyLevel.A1
     tags: list[str] = Field(default_factory=list)
@@ -82,22 +82,22 @@ class VocabularyListResponse(BaseModel):
 class GenerateSentencesRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    level: ProficiencyLevel = Field(description="Nivel CEFR informado pelo usuario.")
+    level: ProficiencyLevel = Field(description="User CEFR level.")
     count: int = Field(default=3, ge=1, le=10)
     terms: list[str] = Field(
         default_factory=list,
         max_length=5,
-        description="Termos que as frases devem praticar. Vazio = usa o vocabulario salvo.",
+        description="Terms to practice. Empty = use saved vocabulary.",
     )
     topic: str | None = Field(default=None, max_length=120)
     use_my_vocabulary: bool = Field(
         default=True,
-        description="Se `terms` vier vazio, sorteia palavras do vocabulario do usuario.",
+        description="If `terms` is empty, samples terms from user vocabulary.",
     )
 
 
 class SentenceChunkResponse(BaseModel):
-    """Um bloco da analise estrutural, por tras do botao "Entender Estrutura"."""
+    """A block from structural analysis for 'Understand Structure' feature."""
 
     text: str
     role: str
@@ -109,7 +109,7 @@ class SentenceChunkResponse(BaseModel):
 
 
 class SentenceVocabularyResponse(BaseModel):
-    """Um item de vocabulario da frase (palavra/expressao + traducao)."""
+    """A sentence vocabulary item (word/phrase + translation)."""
 
     term: str
     translation: str
@@ -124,7 +124,6 @@ class SentenceResponse(BaseModel):
     translation: str
     level: ProficiencyLevel
     focus_term: str | None
-    # Vazio quando a IA nao devolveu analise reconstruivel (ver gemini_generator).
     chunks: list[SentenceChunkResponse]
     vocabulary: list[SentenceVocabularyResponse]
 
@@ -157,14 +156,14 @@ class GenerateSentencesResponse(BaseModel):
 
 
 class LevelOption(BaseModel):
-    """Opcao de nivel para o app montar a tela de onboarding."""
+    """Level option for onboarding screen."""
 
     level: ProficiencyLevel
     label: str
 
 
 class AiStatusResponse(BaseModel):
-    """Permite ao frontend esconder a feature quando a IA nao esta configurada."""
+    """Allows frontend to hide feature when AI is not configured."""
 
     enabled: bool
     model: str | None
@@ -172,14 +171,14 @@ class AiStatusResponse(BaseModel):
 
 
 class StudyModeOption(BaseModel):
-    """Modo individual que pode ser combinado com os demais."""
+    """Individual mode that can be combined with others."""
 
     mode: ExerciseMode
     label: str
 
 
 class StudyThemeOption(BaseModel):
-    """Tema enviado ao gerador; None mantem o sorteio do catalogo."""
+    """Theme sent to generator; None keeps catalog selection."""
 
     theme: str | None
     label: str
@@ -233,14 +232,7 @@ class StudyCardResponse(BaseModel):
 
 
 class StudyExerciseResponse(BaseModel):
-    """Um card ja renderizado no modo sorteado.
-
-    `answer` vai para o cliente porque a correcao dos cinco modos acontece no
-    aparelho (digitacao, ordem dos blocos e Speech Recognition do navegador), o
-    que mantem a sessao respondendo rapido e funcionando com rede ruim. Nao e um
-    contrato a prova de trapaca: nao ha nota nem ranking, o app e de estudo
-    individual e o proprio aluno decide a nota da revisao.
-    """
+    """A card rendered in selected mode for client UI rendering."""
 
     mode: ExerciseMode
     instruction: str
@@ -268,10 +260,7 @@ class StudyExerciseResponse(BaseModel):
 class StudySessionResponse(BaseModel):
     level: ProficiencyLevel
     total: int
-    # Quantos cards a IA criou agora para fechar a sessao.
     generated_count: int
-    # Divida real de revisao. `ahead_count` e o excedente de estudo adiantado, que
-    # aparece quando nao havia card vencido suficiente nem geracao disponivel.
     due_count: int
     ahead_count: int
     themes: list[str]
@@ -294,7 +283,7 @@ class StudySessionResponse(BaseModel):
 
 class ReviewStudyCardRequest(BaseModel):
     grade: ReviewGrade = Field(
-        description="Como o aluno se saiu: AGAIN volta na mesma sessao, EASY afasta mais."
+        description="Student performance: AGAIN repeats in same session, EASY pushes further."
     )
 
 
@@ -312,10 +301,11 @@ class ReviewStudyCardResponse(BaseModel):
         )
 
 
-# ---------- historico ----------
+# ---------- history ----------
+
 
 class SeenWordResponse(BaseModel):
-    """Uma palavra-alvo unica vista pelo usuario."""
+    """A unique target word seen by user."""
 
     term: str
     translation: str
@@ -326,7 +316,7 @@ class SeenWordResponse(BaseModel):
 
 
 class StudyHistoryResponse(BaseModel):
-    """Historico paginado de frases e palavras vistas pelo usuario."""
+    """Paginated history of sentences and words seen by user."""
 
     sentences: list[StudyCardResponse]
     sentences_total: int
@@ -346,21 +336,23 @@ class StudyHistoryResponse(BaseModel):
             offset=page.offset,
         )
 
+
 # ---------- session words ----------
 
+
 class SaveSessionWordsRequest(BaseModel):
-    """Palavras vistas na sessao que devem ser traduzidas e salvas."""
+    """Words seen in a session to translate and save."""
 
     words: list[str] = Field(
         default_factory=list,
         max_length=100,
-        description="Lista de palavras/expressoes em ingles vistas na sessao concluida.",
+        description="List of English words/expressions seen in completed session.",
     )
     translations: dict[str, str] = Field(
         default_factory=dict,
         description=(
-            "Traducoes ja conhecidas por termo (vindas do vocabulario gerado pela IA). "
-            "Termos ausentes aqui sao traduzidos pelo servidor como fallback."
+            "Known translations by term (from AI generated vocabulary). "
+            "Missing terms here are translated by server as fallback."
         ),
     )
 
@@ -372,8 +364,9 @@ class SaveSessionWordsResponse(BaseModel):
 
 # ---------- sentence builder ----------
 
+
 class SentenceBuilderValidateRequest(BaseModel):
-    """Payload enviado pelo aluno no modo SENTENCE_BUILDER."""
+    """Payload sent by user in SENTENCE_BUILDER mode."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -382,30 +375,31 @@ class SentenceBuilderValidateRequest(BaseModel):
 
 
 class SentenceBuilderValidateResponse(BaseModel):
-    """Resultado da validacao spaCy retornado ao cliente."""
+    """spaCy validation result returned to client."""
 
     valid: bool
     reason: str | None = None
     feedback: str | None = None
 
 
-# ---------- traducao avancada ----------
+# ---------- advanced translation ----------
+
 
 class TranslateRequest(BaseModel):
-    """Payload para o endpoint de traducao avancada."""
+    """Payload for advanced translation endpoint."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
     text: str = Field(
         min_length=1,
         max_length=1000,
-        description="Frase ou expressao a traduzir e analisar.",
+        description="Phrase or expression to translate and analyze.",
         examples=["I've been looking forward to this moment."],
     )
 
 
 class TranslationChunkResponse(BaseModel):
-    """Um bloco gramatical da frase com papel e explicacao."""
+    """A grammatical block with role and explanation."""
 
     text: str
     role: str
@@ -413,7 +407,7 @@ class TranslationChunkResponse(BaseModel):
 
 
 class TranslationCorrectionResponse(BaseModel):
-    """Um erro gramatical/ortografico encontrado na entrada em ingles."""
+    """A grammar/spelling error found in English input."""
 
     original: str
     corrected: str
@@ -421,7 +415,7 @@ class TranslationCorrectionResponse(BaseModel):
 
 
 class TranslateResponse(BaseModel):
-    """Resultado da traducao avancada com analise de blocos."""
+    """Advanced translation result with block analysis."""
 
     original: str
     translation: str

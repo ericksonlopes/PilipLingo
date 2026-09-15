@@ -1,7 +1,7 @@
-"""Rotas HTTP da fatia chat.
+"""HTTP routes for chat slice.
 
-Ordem importa: caminhos fixos declarados antes de parametros UUID para o FastAPI
-nao confundir "status" com um UUID.
+Order matters: fixed path routes declared before UUID parameters so FastAPI
+does not confuse "status" with a UUID.
 """
 
 from __future__ import annotations
@@ -46,19 +46,19 @@ from modules.users.api.dependencies import CurrentUserDep
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.get("/status", response_model=ChatStatusResponse, summary="Status do servico de IA do chat")
+@router.get("/status", response_model=ChatStatusResponse, summary="Chat AI service status")
 async def chat_status(use_case: ChatStatusDep) -> ChatStatusResponse:
     result = await use_case.execute()
     return ChatStatusResponse(enabled=result.enabled, model=result.model)
 
 
-@router.get("/topics", response_model=list[ChatTopicResponse], summary="Topicos pre-definidos")
+@router.get("/topics", response_model=list[ChatTopicResponse], summary="Predefined topics")
 async def list_topics(use_case: ListTopicsDep) -> list[ChatTopicResponse]:
     result = await use_case.execute()
     return [ChatTopicResponse.from_entity(t) for t in result.items]
 
 
-@router.get("/goals", response_model=list[ChatGoalResponse], summary="Metas pre-definidas")
+@router.get("/goals", response_model=list[ChatGoalResponse], summary="Predefined goals")
 async def list_goals(use_case: ListGoalsDep) -> list[ChatGoalResponse]:
     result = await use_case.execute()
     return [ChatGoalResponse.from_entity(g) for g in result.items]
@@ -68,7 +68,7 @@ async def list_goals(use_case: ListGoalsDep) -> list[ChatGoalResponse]:
     "/conversations",
     response_model=ConversationResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cria uma nova conversa",
+    summary="Create a new conversation",
 )
 async def create_conversation(
     payload: CreateConversationRequest,
@@ -90,7 +90,7 @@ async def create_conversation(
 @router.get(
     "/conversations",
     response_model=ConversationListResponse,
-    summary="Lista conversas do usuario",
+    summary="List user conversations",
 )
 async def list_conversations(
     use_case: ListConversationsDep,
@@ -112,9 +112,9 @@ async def list_conversations(
 @router.post(
     "/conversations/{conversation_id}/complete",
     response_model=ConversationResponse,
-    summary="Conclui uma conversa ativa",
+    summary="Complete an active conversation",
     responses={
-        404: {"description": "Conversa nao encontrada"},
+        404: {"description": "Conversation not found"},
     },
 )
 async def complete_conversation(
@@ -131,10 +131,10 @@ async def complete_conversation(
 @router.delete(
     "/conversations/{conversation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Abandona uma conversa ativa",
+    summary="Abandon an active conversation",
     responses={
-        404: {"description": "Conversa nao encontrada"},
-        409: {"description": "Conversa ja encerrada ou abandonada"},
+        404: {"description": "Conversation not found"},
+        409: {"description": "Conversation already ended or abandoned"},
     },
 )
 async def abandon_conversation(
@@ -151,10 +151,10 @@ async def abandon_conversation(
 @router.post(
     "/conversations/{conversation_id}/turns",
     response_model=SendTurnResponse,
-    summary="Envia mensagem e recebe resposta da IA",
+    summary="Send message and receive AI response",
     responses={
-        409: {"description": "Conversa nao esta ativa"},
-        503: {"description": "Servico de IA indisponivel"},
+        409: {"description": "Conversation is not active"},
+        503: {"description": "AI service unavailable"},
     },
 )
 async def send_turn(
@@ -176,8 +176,8 @@ async def send_turn(
 @router.get(
     "/conversations/{conversation_id}/turns",
     response_model=list[TurnResponse],
-    summary="Lista todos os turnos de uma conversa",
-    responses={404: {"description": "Conversa nao encontrada"}},
+    summary="List all turns of a conversation",
+    responses={404: {"description": "Conversation not found"}},
 )
 async def list_turns(
     conversation_id: UUID,

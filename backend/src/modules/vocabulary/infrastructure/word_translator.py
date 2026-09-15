@@ -1,4 +1,4 @@
-"""Adaptador de traducao de palavras usando deep-translator (Google Translate)."""
+"""Word translation adapter using deep-translator (Google Translate)."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ from modules.vocabulary.domain.ports import WordTranslator
 
 logger = logging.getLogger(__name__)
 
-# Limite seguro de palavras por chamada para evitar payloads grandes.
+# Safe batch size to avoid oversized payloads.
 _BATCH_SIZE = 20
 
 
 class DeepWordTranslator(WordTranslator):
-    """Traduz termos em ingles para portugues usando o Google Translate (free tier)."""
+    """Translates English terms to Portuguese using Google Translate (free tier)."""
 
     def __init__(self) -> None:
         self._translator = GoogleTranslator(source="en", target="pt")
@@ -28,7 +28,6 @@ class DeepWordTranslator(WordTranslator):
         loop = asyncio.get_running_loop()
         results: dict[str, str] = {}
 
-        # Processa em lotes para nao sobrecarregar a API.
         for i in range(0, len(words), _BATCH_SIZE):
             batch = words[i : i + _BATCH_SIZE]
             try:
@@ -38,12 +37,12 @@ class DeepWordTranslator(WordTranslator):
                 results.update(translated)
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
-                    "[deep-translator] falha ao traduzir lote %d-%d: %s",
+                    "[deep-translator] failed translating batch %d-%d: %s",
                     i, i + len(batch), exc,
                 )
 
         logger.info(
-            "[deep-translator] %d/%d termos traduzidos",
+            "[deep-translator] %d/%d terms translated",
             len(results), len(words),
         )
         return results
@@ -56,5 +55,5 @@ class DeepWordTranslator(WordTranslator):
                 if translation and translation.strip():
                     out[word] = translation.strip()
             except Exception as exc:  # noqa: BLE001
-                logger.debug("[deep-translator] falha em %r: %s", word, exc)
+                logger.debug("[deep-translator] failure on %r: %s", word, exc)
         return out

@@ -1,4 +1,4 @@
-"""Erros de dominio especificos da fatia chat."""
+"""Domain errors specific to chat slice."""
 
 from __future__ import annotations
 
@@ -6,12 +6,12 @@ from shared.errors import ConflictError, UnavailableError
 
 
 class InvalidConversationState(ConflictError):
-    """Operacao incompativel com o estado atual da conversa."""
+    """Operation incompatible with current conversation state."""
 
     code = "invalid_state"
 
 
 class ChatAIUnavailable(UnavailableError):
-    """O servico de IA para o chat nao esta disponivel ou configurado."""
+    """AI service for chat is not available or configured."""
 
     code = "unavailable"

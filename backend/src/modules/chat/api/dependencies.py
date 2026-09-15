@@ -1,4 +1,4 @@
-"""Wiring da fatia chat: liga portas a adaptadores concretos."""
+"""Wiring for chat slice: binds ports to concrete adapters."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ from modules.chat.infrastructure.repository import (
 )
 from shared.api.dependencies import SessionDep, SettingsDep
 
-# ---------- repositorios ----------
+# ---------- repositories ----------
 
 
 def get_conversation_repository(session: SessionDep) -> ConversationRepository:
@@ -62,7 +62,7 @@ GoalRepoDep = Annotated[GoalRepository, Depends(get_goal_repository)]
 def _build_chat_model(
     model: str, api_key: str, temperature: float, timeout: float, retries: int
 ) -> BaseChatModel:
-    """Cacheado por configuracao para reutilizar conexoes."""
+    """Cached by configuration to reuse connections."""
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=api_key,
@@ -73,7 +73,7 @@ def _build_chat_model(
 
 
 def get_chat_ai(settings: SettingsDep) -> ChatAIPort | None:
-    """Retorna o adaptador de IA ou None quando a chave nao esta configurada."""
+    """Returns AI adapter or None when API key is not set."""
     if not settings.is_ai_configured:
         return None
     assert settings.google_api_key is not None
@@ -90,7 +90,7 @@ def get_chat_ai(settings: SettingsDep) -> ChatAIPort | None:
 ChatAIDep = Annotated[ChatAIPort | None, Depends(get_chat_ai)]
 
 
-# ---------- casos de uso ----------
+# ---------- use cases ----------
 
 
 def get_chat_status_use_case(settings: SettingsDep) -> GetChatStatus:
@@ -131,10 +131,10 @@ def get_send_turn_use_case(
     from modules.chat.domain.errors import ChatAIUnavailable
 
     if ai is None:
-        # Cria um adaptador que sempre levanta ChatAIUnavailable.
+        # Creates an adapter that always raises ChatAIUnavailable.
         class _DisabledTutor(ChatAIPort):
             async def generate_turn(self, context: object) -> object:  # type: ignore[override]
-                raise ChatAIUnavailable("Servico de IA nao configurado.")
+                raise ChatAIUnavailable("AI service is not configured.")
 
         effective_ai: ChatAIPort = _DisabledTutor()
     else:

@@ -1,10 +1,9 @@
-"""Rotas HTTP da fatia vocabulary.
+"""HTTP routes for vocabulary slice.
 
-Inclui o CRUD do vocabulario e a geracao de frases de exemplo por IA, que antes
-morava na fatia `sentences`.
+Includes vocabulary CRUD and AI example sentence generation.
 
-Ordem importa: rotas de caminho fixo (`/levels`, `/sentences/...`) sao declaradas
-antes de `/{entry_id}`, senao o FastAPI tentaria interpretar "levels" como UUID.
+Order matters: fixed path routes (`/levels`, `/sentences/...`) are declared
+before `/{entry_id}` so FastAPI does not attempt to parse "levels" as UUID.
 """
 
 from __future__ import annotations
@@ -86,7 +85,7 @@ _STUDY_MODE_LABELS: dict[ExerciseMode, str] = {
     "",
     response_model=VocabularyEntryResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cadastra um item de vocabulario",
+    summary="Register a vocabulary item",
 )
 async def create_entry(
     payload: VocabularyEntryCreateRequest,
@@ -104,7 +103,7 @@ async def create_entry(
     return VocabularyEntryResponse.from_entity(entry)
 
 
-@router.get("", response_model=VocabularyListResponse, summary="Lista itens de vocabulario")
+@router.get("", response_model=VocabularyListResponse, summary="List vocabulary items")
 async def list_entries(
     use_case: ListUseCaseDep,
     search: str | None = Query(default=None, max_length=120),
@@ -120,7 +119,7 @@ async def list_entries(
     )
 
 
-@router.get("/levels", response_model=list[LevelOption], summary="Niveis CEFR disponiveis")
+@router.get("/levels", response_model=list[LevelOption], summary="Available CEFR levels")
 async def list_levels() -> list[LevelOption]:
     return [LevelOption(level=level, label=level.label) for level in ProficiencyLevel]
 
@@ -128,13 +127,12 @@ async def list_levels() -> list[LevelOption]:
 @router.get(
     "/sentences/status",
     response_model=AiStatusResponse,
-    summary="A geracao de frases por IA esta ativa?",
+    summary="Is AI sentence generation active?",
 )
 async def ai_status(settings: SettingsDep) -> AiStatusResponse:
     enabled = settings.is_ai_configured
     return AiStatusResponse(
         enabled=enabled,
-        # Nunca expomos a chave, apenas o nome do modelo quando ativo.
         model=settings.gemini_model if enabled else None,
         max_sentences_per_request=settings.sentences_max_per_request,
     )
@@ -144,8 +142,8 @@ async def ai_status(settings: SettingsDep) -> AiStatusResponse:
     "/sentences/generate",
     response_model=GenerateSentencesResponse,
     status_code=status.HTTP_200_OK,
-    summary="Gera frases de exemplo no nivel informado pelo usuario",
-    responses={503: {"description": "IA nao configurada ou indisponivel"}},
+    summary="Generate example sentences at user CEFR level",
+    responses={503: {"description": "AI not configured or unavailable"}},
 )
 async def generate_sentences(
     payload: GenerateSentencesRequest,
@@ -166,7 +164,7 @@ async def generate_sentences(
 @router.get(
     "/study/options",
     response_model=StudyOptionsResponse,
-    summary="Modos e temas disponiveis para preparar a sessao",
+    summary="Available modes and themes for session setup",
 )
 async def study_options() -> StudyOptionsResponse:
     return StudyOptionsResponse(
@@ -184,29 +182,29 @@ async def study_options() -> StudyOptionsResponse:
 @router.get(
     "/study/today",
     response_model=StudySessionResponse,
-    summary="Sessao de estudo do dia nos modos selecionados",
-    responses={503: {"description": "Sem card para estudar e IA indisponivel"}},
+    summary="Daily study session with selected modes",
+    responses={503: {"description": "No cards to study and AI unavailable"}},
 )
 async def study_today(
     use_case: BuildStudySessionDep,
-    level: Annotated[ProficiencyLevel, Query(description="Nivel CEFR do aluno.")],
+    level: Annotated[ProficiencyLevel, Query(description="User CEFR level.")],
     limit: Annotated[int, Query(ge=1, le=MAX_SESSION_SIZE)] = DEFAULT_SESSION_SIZE,
     theme: Annotated[
         str | None,
-        Query(max_length=120, description="Assunto das frases novas. Vazio = sorteado."),
+        Query(max_length=120, description="Topic for new sentences. Empty = random."),
     ] = None,
     modes: Annotated[
         list[ExerciseMode] | None,
         Query(
             description=(
-                "Modos individuais selecionados, repetindo o parametro. "
-                "Omitido preserva a montagem legada."
+                "Selected individual modes, repeating query param. "
+                "Omitted preserves legacy setup."
             )
         ),
     ] = None,
     reset: Annotated[
         bool,
-        Query(description="Descarta cards nao revisados de sessoes anteriores antes de montar."),
+        Query(description="Discard unreviewed cards from previous sessions before building."),
     ] = False,
 ) -> StudySessionResponse:
     session = await use_case.execute(
@@ -224,11 +222,11 @@ async def study_today(
 @router.post(
     "/study/reset",
     status_code=status.HTTP_200_OK,
-    summary="Descarta cards nao revisados de sessoes abandonadas",
+    summary="Discard unreviewed cards from abandoned sessions",
 )
 async def reset_study_session(
     use_case: ResetStudySessionDep,
-    level: Annotated[ProficiencyLevel, Query(description="Nivel CEFR do aluno.")],
+    level: Annotated[ProficiencyLevel, Query(description="User CEFR level.")],
 ) -> dict[str, int]:
     deleted = await use_case.execute(ResetStudySessionCommand(level=level))
     return {"deleted": deleted}
@@ -237,8 +235,8 @@ async def reset_study_session(
 @router.post(
     "/study/{card_id}/review",
     response_model=ReviewStudyCardResponse,
-    summary="Registra o resultado da revisao e reagenda o card",
-    responses={404: {"description": "Card inexistente"}},
+    summary="Register review result and reschedule card",
+    responses={404: {"description": "Card not found"}},
 )
 async def review_study_card(
     card_id: UUID,
@@ -252,7 +250,7 @@ async def review_study_card(
 @router.get(
     "/study/history",
     response_model=StudyHistoryResponse,
-    summary="Historico de frases e palavras vistas pelo usuario",
+    summary="History of sentences and words seen by user",
 )
 async def study_history(
     use_case: StudyHistoryDep,
@@ -267,7 +265,7 @@ async def study_history(
     "/study/session-words",
     response_model=SaveSessionWordsResponse,
     status_code=status.HTTP_200_OK,
-    summary="Traduz e salva as palavras vistas em uma sessao concluida",
+    summary="Translate and save words seen in a completed session",
 )
 async def save_session_words(
     payload: SaveSessionWordsRequest,
@@ -282,8 +280,8 @@ async def save_session_words(
 @router.post(
     "/study/sentence-builder/validate",
     response_model=SentenceBuilderValidateResponse,
-    summary="Valida a frase criada pelo aluno no modo SENTENCE_BUILDER",
-    responses={503: {"description": "Modelo spaCy nao disponivel"}},
+    summary="Validate sentence created by user in SENTENCE_BUILDER mode",
+    responses={503: {"description": "spaCy model unavailable"}},
 )
 async def validate_sentence_builder(
     payload: SentenceBuilderValidateRequest,
@@ -300,9 +298,9 @@ async def validate_sentence_builder(
 @router.post(
     "/translate",
     response_model=TranslateResponse,
-    summary="Traduz uma frase e retorna analise estrutural em blocos",
+    summary="Translate phrase and return structural block analysis",
     responses={
-        503: {"description": "Servico de IA nao configurado ou indisponivel"},
+        503: {"description": "AI service not configured or unavailable"},
     },
 )
 async def translate_phrase(
@@ -317,7 +315,7 @@ async def translate_phrase(
 @router.get(
     "/{entry_id}",
     response_model=VocabularyEntryResponse,
-    summary="Detalha um item de vocabulario",
+    summary="Get vocabulary item details",
 )
 async def get_entry(entry_id: UUID, use_case: GetUseCaseDep) -> VocabularyEntryResponse:
     return VocabularyEntryResponse.from_entity(await use_case.execute(entry_id))
@@ -326,7 +324,7 @@ async def get_entry(entry_id: UUID, use_case: GetUseCaseDep) -> VocabularyEntryR
 @router.patch(
     "/{entry_id}",
     response_model=VocabularyEntryResponse,
-    summary="Atualiza um item de vocabulario",
+    summary="Update a vocabulary item",
 )
 async def update_entry(
     entry_id: UUID,
@@ -348,7 +346,7 @@ async def update_entry(
 @router.delete(
     "/{entry_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Remove um item de vocabulario",
+    summary="Delete a vocabulary item",
 )
 async def delete_entry(entry_id: UUID, use_case: DeleteUseCaseDep) -> Response:
     await use_case.execute(entry_id)

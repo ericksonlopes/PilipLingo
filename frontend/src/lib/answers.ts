@@ -1,14 +1,13 @@
 /**
- * Comparacao das respostas do aluno.
+ * Student answer evaluation.
  *
- * Vive no frontend porque a correcao dos cinco modos acontece no aparelho. A
- * regra e ser exigente com a palavra e tolerante com o resto: pontuacao,
- * maiuscula e espaco duplo nao sao o que esta sendo ensinado.
+ * Runs on frontend since checking for all five modes happens on device.
+ * Tolerates minor punctuation, capitalization, and spacing differences.
  */
 
-// ─── Normalizacao ─────────────────────────────────────────────────────────────
+// ─── Normalization ────────────────────────────────────────────────────────
 
-/** Pontuacao de borda e removida; o apostrofo interno de "I've" e preservado. */
+/** Edge punctuation is stripped; internal apostrophe in "I've" is preserved. */
 const EDGE_PUNCTUATION = /^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu;
 
 export function normalizeAnswer(value: string): string {
@@ -26,11 +25,11 @@ export function isExactAnswer(given: string, expected: string): boolean {
   return normalizeAnswer(given) === normalizeAnswer(expected);
 }
 
-// ─── Levenshtein por caractere ────────────────────────────────────────────────
+// ─── Character-level Levenshtein ──────────────────────────────────────────
 
 /**
- * Distancia de Levenshtein entre dois tokens (ja normalizados).
- * Custo de substituicao = 1, insercao/delecao = 1.
+ * Levenshtein distance between two normalized tokens.
+ * Substitution cost = 1, insertion/deletion = 1.
  */
 export function levenshtein(a: string, b: string): number {
   if (a === b) return 0;
@@ -50,12 +49,12 @@ export function levenshtein(a: string, b: string): number {
 }
 
 /**
- * Limiar de distancia para considerar "quase certo" em funcao do comprimento
- * da palavra esperada.
+ * Distance threshold for considering an answer "almost right" based on
+ * expected word length.
  *
- *  1–3 chars  → sem tolerancia (palavras curtas, 1 erro muda tudo)
- *  4–6 chars  → tolerancia 1
- *  7+ chars   → tolerancia 2
+ *  1–3 chars  → no tolerance
+ *  4–6 chars  → tolerance 1
+ *  7+ chars   → tolerance 2
  */
 function closenessThreshold(expectedLength: number): number {
   if (expectedLength <= 3) return 0;
@@ -64,30 +63,24 @@ function closenessThreshold(expectedLength: number): number {
 }
 
 /**
- * Retorna true quando a resposta digitada e "quase certa": nao e exata, mas
- * esta dentro do limiar de distancia para o comprimento da palavra esperada.
+ * Returns true when typed answer is "almost right": not exact, but within
+ * distance threshold for expected word length.
  */
 export function isCloseAnswer(given: string, expected: string): boolean {
   const g = normalizeAnswer(given);
   const e = normalizeAnswer(expected);
-  if (g === e) return false; // exata — nao e "quase"
+  if (g === e) return false;
   const threshold = closenessThreshold(e.length);
   if (threshold === 0) return false;
   return levenshtein(g, e) <= threshold;
 }
 
-// ─── Deteccao de erros ortograficos em frases livres ─────────────────────────
+// ─── Typo detection in free-form sentences ────────────────────────────────
 
 /**
- * Para o modo "Criar frase" o aluno escreve em ingles. O servico de backend
- * valida a estrutura gramatical, mas erros tipograficos simples nao sao
- * detectados pelo spaCy. Esta funcao compara cada token digitado com a lista
- * de palavras do card (sentence + focus_term) e sinaliza os que parecem ser
- * erro de digitacao (distancia = 1 em relacao a uma palavra conhecida do
- * exercicio).
- *
- * Retorna um array de { original, suggestion } para as palavras suspeitas.
- * Palavras muito curtas (<= 2 chars) sao ignoradas para evitar falsos positivos.
+ * For "Sentence Builder" mode the student writes in English. Backend service
+ * validates grammatical structure. This function compares typed tokens with card
+ * words to highlight potential typos.
  */
 export interface SpellingSuggestion {
   original: string;
@@ -112,12 +105,10 @@ export function detectTypos(
     if (seen.has(norm)) continue;
     seen.add(norm);
 
-    // Ignora se e exatamente igual a alguma referencia
     if (refNorm.includes(norm)) continue;
 
-    // Procura a referencia mais proxima com distancia = 1
     for (const ref of refNorm) {
-      if (Math.abs(ref.length - norm.length) > 2) continue; // otimizacao de custo
+      if (Math.abs(ref.length - norm.length) > 2) continue;
       if (levenshtein(norm, ref) === 1) {
         suggestions.push({ original: token, suggestion: ref });
         break;
@@ -128,14 +119,11 @@ export function detectTypos(
   return suggestions;
 }
 
-// ─── Similaridade por palavra (LCS) ──────────────────────────────────────────
+// ─── Word similarity (LCS) ────────────────────────────────────────────────
 
 /**
- * Similaridade por palavra, de 0 a 1, usando a maior subsequencia comum.
- *
- * Usada na pratica de fala: o reconhecimento do navegador troca "to" por "two" e
- * come artigos, entao exigir transcricao exata reprovaria o aluno por erro do
- * microfone, nao por erro de ingles.
+ * Word-level similarity (0 to 1) using Longest Common Subsequence.
+ * Used for speaking practice.
  */
 export function answerSimilarity(given: string, expected: string): number {
   const givenWords = normalizeAnswer(given).split(" ").filter(Boolean);
@@ -152,7 +140,7 @@ export function answerSimilarity(given: string, expected: string): number {
   return common / Math.max(givenWords.length, expectedWords.length);
 }
 
-/** Aceita a fala quando bate o suficiente com a frase esperada. */
+/** Accepts speech input when similarity ratio reaches threshold. */
 export const SPEAKING_PASS_RATIO = 0.75;
 
 export function isSpokenAnswerAccepted(transcripts: string[], expected: string): boolean {
@@ -171,7 +159,6 @@ export function bestSimilarity(transcripts: string[], expected: string): number 
 }
 
 function longestCommonSubsequence(left: string[], right: string[]): number {
-  // Matriz (n+1) x (m+1) classica; as frases sao curtas, custo irrelevante.
   const table: number[][] = Array.from({ length: left.length + 1 }, () =>
     new Array<number>(right.length + 1).fill(0),
   );

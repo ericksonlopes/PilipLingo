@@ -1,7 +1,7 @@
-"""Portas (interfaces) do dominio vocabulary.
+"""Ports (interfaces) for vocabulary domain.
 
-O dominio declara o que precisa; a camada de infraestrutura fornece os
-adaptadores. Nenhuma implementacao concreta e referenciada aqui.
+The domain declares requirements; infrastructure layer provides adapters.
+No concrete implementations referenced here.
 """
 
 from __future__ import annotations
@@ -19,11 +19,11 @@ from modules.vocabulary.domain.entities import (
 from modules.vocabulary.domain.study import StudyCard
 from shared.domain.proficiency import ProficiencyLevel
 
-# ---------- value objects usados pelas portas ----------
+# ---------- value objects used by ports ----------
 
 @dataclass(frozen=True, slots=True)
 class TranslationChunk:
-    """Um bloco gramatical retornado pelo adaptador de traducao."""
+    """A grammatical block returned by translation adapter."""
     text: str
     role: str
     explanation: str
@@ -31,15 +31,15 @@ class TranslationChunk:
 
 @dataclass(frozen=True, slots=True)
 class TranslationCorrection:
-    """Um erro gramatical/ortografico encontrado na entrada em ingles."""
-    original: str     # fragmento errado exatamente como o usuario escreveu
-    corrected: str    # forma correta
-    explanation: str  # explicacao em portugues de por que esta errado
+    """A grammar/spelling error found in English input."""
+    original: str
+    corrected: str
+    explanation: str
 
 
 @dataclass(frozen=True, slots=True)
 class PhraseTranslationResult:
-    """Resultado bruto devolvido pelo adaptador PhraseTranslator."""
+    """Raw result returned by PhraseTranslator adapter."""
     original: str
     translation: str
     english_phrase: str
@@ -50,23 +50,23 @@ class PhraseTranslationResult:
 
 
 class VocabularyRepository(ABC):
-    """Porta de persistencia de itens de vocabulario."""
+    """Persistence port for vocabulary items."""
 
     @abstractmethod
     async def add(self, entry: VocabularyEntry) -> VocabularyEntry:
-        """Persiste um novo item."""
+        """Persists a new item."""
 
     @abstractmethod
     async def update(self, entry: VocabularyEntry) -> VocabularyEntry:
-        """Persiste alteracoes de um item existente."""
+        """Persists changes to an existing item."""
 
     @abstractmethod
     async def get_by_id(self, entry_id: UUID) -> VocabularyEntry | None:
-        """Busca por identificador."""
+        """Finds item by ID."""
 
     @abstractmethod
     async def find_by_term(self, term: str) -> VocabularyEntry | None:
-        """Busca pelo termo (case-insensitive)."""
+        """Finds item by term (case-insensitive)."""
 
     @abstractmethod
     async def list_all(
@@ -76,65 +76,62 @@ class VocabularyRepository(ABC):
         limit: int = 50,
         offset: int = 0,
     ) -> list[VocabularyEntry]:
-        """Lista itens com filtro opcional e paginacao."""
+        """Lists items with optional search filter and pagination."""
 
     @abstractmethod
     async def count(self, *, search: str | None = None) -> int:
-        """Total de itens que atendem ao filtro."""
+        """Total items matching search filter."""
 
     @abstractmethod
     async def delete(self, entry_id: UUID) -> bool:
-        """Remove um item. Retorna False se nao existia."""
+        """Removes an item. Returns False if it did not exist."""
 
 
 class SentenceGenerator(ABC):
-    """Porta de geracao de frases de exemplo (implementada por um adaptador de IA).
-
-    O dominio nao sabe que por tras existe um LLM: so conhece este contrato.
-    """
+    """Port for example sentence generation (implemented by AI adapter)."""
 
     @abstractmethod
     async def generate(self, request: SentenceRequest) -> list[GeneratedSentence]:
-        """Produz frases coerentes com o nivel pedido."""
+        """Produces sentences consistent with requested level."""
 
 
 class WordTranslator(ABC):
-    """Porta de traducao de palavras/termos individuais EN→PT-BR."""
+    """Port for translating individual words/terms EN->PT-BR."""
 
     @abstractmethod
     async def translate_many(self, words: list[str]) -> dict[str, str]:
-        """Traduz uma lista de termos e devolve {termo: traducao}.
+        """Translates a list of terms and returns {term: translation}.
 
-        Termos que falharem na traducao sao omitidos do resultado.
+        Terms failing translation are omitted from result.
         """
 
 
 class PhraseTranslator(ABC):
-    """Porta de traducao avancada de frases com analise estrutural (blocos + resumo)."""
+    """Port for advanced phrase translation with structural analysis."""
 
     @abstractmethod
     async def translate(self, text: str) -> PhraseTranslationResult:
-        """Traduz a frase e devolve blocos gramaticais com explicacoes."""
+        """Translates phrase and returns grammatical blocks with explanations."""
 
 
 class StudyCardRepository(ABC):
-    """Porta de persistencia dos cards de estudo e do estado do agendamento."""
+    """Persistence port for study cards and scheduling state."""
 
     @abstractmethod
     async def add_many(self, cards: list[StudyCard]) -> list[StudyCard]:
-        """Persiste os cards recem-gerados."""
+        """Persists newly generated cards."""
 
     @abstractmethod
     async def get_by_id(self, card_id: UUID) -> StudyCard | None:
-        """Busca por identificador."""
+        """Finds card by ID."""
 
     @abstractmethod
     async def update(self, card: StudyCard) -> StudyCard:
-        """Persiste o novo estado de agendamento apos a revisao."""
+        """Persists updated scheduling state after review."""
 
     @abstractmethod
     async def delete_unreviewed(self, *, level: ProficiencyLevel) -> int:
-        """Remove cards gerados que nunca foram revisados (sessoes abandonadas)."""
+        """Removes generated cards that were never reviewed (abandoned sessions)."""
 
     @abstractmethod
     async def list_due(
@@ -145,7 +142,7 @@ class StudyCardRepository(ABC):
         limit: int,
         theme: str | None = None,
     ) -> list[StudyCard]:
-        """Cards vencidos do nivel, dos mais atrasados para os menos."""
+        """Due cards for level, ordered from most overdue to least overdue."""
 
     @abstractmethod
     async def list_by_level(
@@ -156,7 +153,7 @@ class StudyCardRepository(ABC):
         exclude: set[UUID] | None = None,
         theme: str | None = None,
     ) -> list[StudyCard]:
-        """Cards do nivel independente de vencimento (completa grupo e evita repeticao)."""
+        """Cards of level regardless of due date."""
 
     @abstractmethod
     async def count_due(
@@ -166,11 +163,11 @@ class StudyCardRepository(ABC):
         now: datetime,
         theme: str | None = None,
     ) -> int:
-        """Quantos cards do nivel estao vencidos."""
+        """How many cards for level are due."""
 
     @abstractmethod
     async def existing_sentences(self, *, level: ProficiencyLevel) -> set[str]:
-        """Frases ja cadastradas (normalizadas), para nao gerar duplicata."""
+        """Registered sentences (normalized), to avoid generating duplicates."""
 
     @abstractmethod
     async def list_reviewed(
@@ -179,11 +176,11 @@ class StudyCardRepository(ABC):
         limit: int = 50,
         offset: int = 0,
     ) -> list[StudyCard]:
-        """Cards que o usuario ja viu (reviewed_at IS NOT NULL), mais recentes primeiro."""
+        """Cards already seen by user (reviewed_at IS NOT NULL), most recent first."""
 
     @abstractmethod
     async def count_reviewed(self) -> int:
-        """Total de cards ja revisados pelo usuario."""
+        """Total cards reviewed by user."""
 
     @abstractmethod
     async def list_seen_words(
@@ -192,12 +189,8 @@ class StudyCardRepository(ABC):
         limit: int = 50,
         offset: int = 0,
     ) -> list[tuple[str, str]]:
-        """Palavras vistas (word, translation), mais recentes primeiro.
-
-        Le do registro de palavras vistas, que guarda todo o vocabulario de cada
-        sessao (varias palavras por frase), nao apenas o termo-alvo do card.
-        """
+        """Seen words (word, translation), most recent first."""
 
     @abstractmethod
     async def count_seen_words(self) -> int:
-        """Total de palavras ja vistas pelo usuario."""
+        """Total words seen by user."""

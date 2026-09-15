@@ -1,7 +1,7 @@
-"""Router raiz da API versionada.
+"""Root router for the versioned API.
 
-Para adicionar uma nova fatia vertical: crie o modulo em `src/modules/<slice>`
-e registre o router dela aqui.
+To add a new vertical slice: create the module in `src/modules/<slice>`
+and register its router here.
 """
 
 from __future__ import annotations

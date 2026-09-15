@@ -1,4 +1,4 @@
-"""Testes unitarios para o reset de sessao de estudo e filtro por tema."""
+"""Unit tests for study session reset and theme filter."""
 
 from __future__ import annotations
 
@@ -213,7 +213,7 @@ async def test_build_study_session_with_reset_cleans_unreviewed() -> None:
         )
     )
     assert len(session2.exercises) == 4
-    # Cards da sessão anterior foram descartados, agora só temos os novos
+    # Cards from previous session were discarded; now only new ones remain
     assert len(repo.cards) == 4
     for ex in session2.exercises:
         assert ex.card.theme == "airport and check-in"
@@ -225,7 +225,7 @@ async def test_build_study_session_filters_due_cards_by_theme() -> None:
     generator = FakeSentenceGenerator()
     builder = BuildStudySession(repo, generator, max_per_generation=8, rng=random.Random(42))
 
-    # Card 1: tema "food", já revisado e vencido
+    # Card 1: theme "food", reviewed and due
     due_food = StudyCard.create(
         sentence="I like pizza.",
         translation="Eu gosto de pizza.",
@@ -236,7 +236,7 @@ async def test_build_study_session_filters_due_cards_by_theme() -> None:
     due_food.due_at = datetime.now(UTC)
     await repo.add_many([due_food])
 
-    # Card 2: tema "trip", já revisado e vencido
+    # Card 2: theme "trip", reviewed and due
     due_trip = StudyCard.create(
         sentence="I pack my bag.",
         translation="Eu arrumo minha mala.",
@@ -247,7 +247,7 @@ async def test_build_study_session_filters_due_cards_by_theme() -> None:
     due_trip.due_at = datetime.now(UTC)
     await repo.add_many([due_trip])
 
-    # Pede sessão de "planning a trip": deve vir apenas o due_trip e completar com top_up de trip
+    # Request session for "planning a trip": should fetch only due_trip and top up with trip
     session = await builder.execute(
         StudySessionQuery(
             level=ProficiencyLevel.A1,
@@ -257,10 +257,8 @@ async def test_build_study_session_filters_due_cards_by_theme() -> None:
         )
     )
     assert len(session.exercises) == 3
-    # Todas as frases devem ser do tema pedido
     for ex in session.exercises:
         assert ex.card.theme == "planning a trip"
-    # due_food não deve ter entrado na sessão de trip
     exercise_card_ids = {ex.card.id for ex in session.exercises}
     assert due_food.id not in exercise_card_ids
     assert due_trip.id in exercise_card_ids

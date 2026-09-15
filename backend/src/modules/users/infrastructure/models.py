@@ -1,4 +1,4 @@
-"""Mapeamento ORM da fatia users. Detalhe de infraestrutura, nunca vaza para o dominio."""
+"""ORM mapping for users slice. Infrastructure detail, never leaks to domain."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ class UserModel(Base):
     __tablename__ = "users"
 
     id: Mapped[UUID] = mapped_column(Uuid(), primary_key=True)
-    # Nome em casefold: garante unicidade case-insensitive de forma portavel.
+    # Casefolded username: ensures portable case-insensitive uniqueness.
     username: Mapped[str] = mapped_column(String(40), nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(120), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

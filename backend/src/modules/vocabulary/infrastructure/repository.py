@@ -1,4 +1,4 @@
-"""Adaptador SQLAlchemy da porta VocabularyRepository."""
+"""SQLAlchemy adapter for VocabularyRepository port."""
 
 from __future__ import annotations
 
@@ -19,15 +19,14 @@ from modules.vocabulary.infrastructure.models import VocabularyEntryModel
 
 
 class SqlAlchemyVocabularyRepository(VocabularyRepository):
-    """Persiste itens de vocabulario via SQLAlchemy async.
+    """Persists vocabulary items via async SQLAlchemy.
 
-    O commit e responsabilidade da unidade de trabalho (dependencia get_session),
-    entao aqui usamos apenas flush.
+    Commit is the responsibility of unit of work (get_session dependency),
+    so only flush is used here.
     """
 
     def __init__(self, session: AsyncSession, *, user_id: UUID) -> None:
         self._session = session
-        # Escopo do dono: toda leitura/escrita passa por este id. Nunca cruza usuarios.
         self._user_id = user_id
 
     async def add(self, entry: VocabularyEntry) -> VocabularyEntry:
@@ -39,7 +38,7 @@ class SqlAlchemyVocabularyRepository(VocabularyRepository):
     async def update(self, entry: VocabularyEntry) -> VocabularyEntry:
         model = await self._get_owned(entry.id)
         if model is None:
-            raise LookupError(f"VocabularyEntryModel {entry.id} nao encontrado para update.")
+            raise LookupError(f"VocabularyEntryModel {entry.id} not found for update.")
         apply_to_model(model, entry)
         await self._session.flush()
         return to_domain(model)
@@ -84,7 +83,7 @@ class SqlAlchemyVocabularyRepository(VocabularyRepository):
         return bool(result.rowcount)  # type: ignore[attr-defined]
 
     async def _get_owned(self, entry_id: UUID) -> VocabularyEntryModel | None:
-        """Busca por id garantindo que o registro e do usuario da sessao."""
+        """Fetch by ID ensuring entry belongs to current session user."""
         model = await self._session.get(VocabularyEntryModel, entry_id)
         if model is None or model.user_id != self._user_id:
             return None

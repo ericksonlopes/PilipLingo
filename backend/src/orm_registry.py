@@ -1,7 +1,7 @@
-"""Registro central dos mapeamentos ORM.
+"""Central registry for ORM mappings.
 
-O Alembic importa este modulo para descobrir o metadata completo. Ao criar uma
-nova fatia com tabelas, importe os models dela aqui.
+Alembic imports this module to discover the complete metadata. When creating a
+new slice with tables, import its models here.
 """
 
 from __future__ import annotations

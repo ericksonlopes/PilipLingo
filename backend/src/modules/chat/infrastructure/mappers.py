@@ -1,4 +1,4 @@
-"""Conversao entre modelos ORM e entidades de dominio da fatia chat."""
+"""Conversion between ORM models and domain entities for chat slice."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from shared.domain.proficiency import ProficiencyLevel
 
 
 def _as_utc(dt: datetime) -> datetime:
-    """Reanexar UTC porque SQLite nao persiste timezone."""
+    """Re-attach UTC because SQLite does not persist timezone."""
     if dt.tzinfo is None:
         return dt.replace(tzinfo=UTC)
     return dt
@@ -70,7 +70,7 @@ def conversation_to_domain(model: ConversationModel) -> Conversation:
 
 
 def apply_conversation_to_model(model: ConversationModel, entity: Conversation) -> None:
-    """Aplica mudancas de estado da entidade no model existente."""
+    """Applies entity state changes to existing model."""
     model.goals = entity.goals
     model.goals_progress = entity.goals_progress
     model.goal_status = entity.goal_status.value
@@ -111,7 +111,7 @@ def _feedback_from_json(data: Any) -> TurnFeedback | None:
             corrections=corrections,
             suggestion=data.get("suggestion"),
         )
-    except Exception:  # noqa: BLE001 - JSON malformado nao deve travar a leitura
+    except Exception:  # noqa: BLE001 - malformed JSON should not break reading
         return None
 
 

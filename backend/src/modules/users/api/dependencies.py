@@ -1,4 +1,4 @@
-"""Wiring da fatia users: liga portas a adaptadores concretos + guarda de sessao."""
+"""Wiring for users slice: binds ports to concrete adapters + session guard."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from shared.api.dependencies import SessionDep, SettingsDep
 
 
 def get_user_repository(session: SessionDep) -> UserRepository:
-    """Unico ponto que escolhe a implementacao da porta de persistencia."""
+    """Single point that chooses the persistence port implementation."""
     return SqlAlchemyUserRepository(session)
 
 
@@ -75,8 +75,8 @@ def get_authenticate_use_case(
 AuthenticateUseCaseDep = Annotated[AuthenticateUser, Depends(get_authenticate_use_case)]
 
 
-# auto_error=False: devolvemos nosso proprio 401 (envelope de erro padrao) em vez
-# do 403 cru do HTTPBearer quando falta o header.
+# auto_error=False: we return our own 401 (standard error envelope) instead of
+# raw 403 from HTTPBearer when the header is missing.
 _bearer_scheme = HTTPBearer(auto_error=False)
 BearerDep = Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)]
 
@@ -86,9 +86,9 @@ async def get_current_user(
     repository: RepositoryDep,
     tokens: TokenServiceDep,
 ) -> User:
-    """Resolve o usuario logado a partir do token Bearer. Levanta 401 se invalido."""
+    """Resolves logged in user from Bearer token. Raises 401 if invalid."""
     if credentials is None or not credentials.credentials:
-        raise InvalidToken("Autenticacao obrigatoria.")
+        raise InvalidToken("Authentication required.")
     user_id = tokens.subject(credentials.credentials)
     return await GetCurrentUser(repository).execute(user_id)
 

@@ -1,4 +1,4 @@
-"""Adaptador SQLAlchemy para persistencia de palavras vistas pelo usuario."""
+"""SQLAlchemy adapter for persisting words seen by user."""
 
 from __future__ import annotations
 
@@ -15,23 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 class SqlAlchemySeenWordsRepository:
-    """Persiste e atualiza o registro de palavras vistas pelo usuario.
-
-    Usa INSERT OR IGNORE + UPDATE separado para funcionar com SQLite async sem
-    precisar de dialeto especifico no dominio.
-    """
+    """Persists and updates record of words seen by user."""
 
     def __init__(self, session: AsyncSession, *, user_id: UUID) -> None:
         self._session = session
         self._user_id = user_id
 
     async def upsert_many(self, words_translations: dict[str, str]) -> int:
-        """Insere ou atualiza palavras.
+        """Inserts or updates words.
 
-        - Nova palavra: INSERT com seen_count=1 e first_seen_at=now.
-        - Palavra existente: incrementa seen_count e atualiza last_seen_at.
+        - New word: INSERT with seen_count=1 and first_seen_at=now.
+        - Existing word: increments seen_count and updates last_seen_at.
 
-        Retorna o numero de palavras processadas.
+        Returns number of processed words.
         """
         if not words_translations:
             return 0
@@ -59,7 +55,6 @@ class SqlAlchemySeenWordsRepository:
             else:
                 existing.last_seen_at = now
                 existing.seen_count += 1
-                # Atualiza a traducao se veio uma nova (traducoes podem melhorar).
                 if translation:
                     existing.translation = translation
 
@@ -67,7 +62,7 @@ class SqlAlchemySeenWordsRepository:
 
         await self._session.flush()
         logger.info(
-            "[seen_words] %d palavras processadas para user_id=%s",
+            "[seen_words] %d words processed for user_id=%s",
             processed, self._user_id,
         )
         return processed
@@ -95,7 +90,7 @@ class SqlAlchemySeenWordsRepository:
         return list((await self._session.execute(stmt)).scalars().all())
 
     async def count_all(self) -> int:
-        from sqlalchemy import func  # local import evita ciclo
+        from sqlalchemy import func
         stmt = (
             select(func.count())
             .select_from(SeenWordModel)

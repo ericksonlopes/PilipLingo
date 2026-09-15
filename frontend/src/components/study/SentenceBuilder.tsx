@@ -5,7 +5,7 @@ import { detectTypos } from "../../lib/answers";
 import { speak } from "../../lib/speech";
 import type { StudyExercise } from "../../lib/types";
 import ActionBarSlot from "./ActionBarSlot";
-import AudioButton from "./AudioButton";
+
 
 interface SentenceBuilderProps {
   exercise: StudyExercise;
@@ -14,12 +14,7 @@ interface SentenceBuilderProps {
 }
 
 /**
- * Modo 6: o aluno escreve livremente uma frase em ingles usando o focus_term.
- *
- * A validacao e feita no backend via spaCy (tres regras: presenca do termo,
- * estrutura sujeito-verbo e concordancia morfologica). O componente so chama
- * onResolve apos receber a resposta do servidor; erro de rede nunca avanca o
- * exercicio.
+ * Mode 6: Free-form sentence builder.
  */
 export default function SentenceBuilder({
   exercise,
@@ -33,20 +28,15 @@ export default function SentenceBuilder({
   const [wasCorrect, setWasCorrect] = useState<boolean | null>(null);
   const [hintVisible, setHintVisible] = useState(false);
 
-  // Ao resolver com acerto, reproduz a frase que o aluno criou.
   useEffect(() => {
     if (isResolved && wasCorrect === true && text.trim()) {
       void speak(text.trim());
     }
-  // Só dispara quando isResolved muda para true — não re-executa em re-renders.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isResolved]);
 
   const isBlank = !text.trim();
   const submitDisabled = isBlank || validating || isResolved;
 
-  // Palavras do card usadas como referencia para detectar erros de digitacao.
-  // Inclui a frase de exemplo e o focus_term para maximizar cobertura.
   const referenceWords = useMemo(() => {
     const parts: string[] = [];
     if (exercise.card.sentence) parts.push(...exercise.card.sentence.split(/\s+/));
@@ -54,7 +44,6 @@ export default function SentenceBuilder({
     return parts;
   }, [exercise.card.sentence, exercise.prompt]);
 
-  // Detecta possiveis erros de digitacao em tempo real (so antes de resolver).
   const typos = useMemo(
     () => (isResolved || isBlank ? [] : detectTypos(text, referenceWords)),
     [text, referenceWords, isResolved, isBlank],
@@ -83,7 +72,6 @@ export default function SentenceBuilder({
       if (isNetworkOrServer || !(err instanceof ApiError)) {
         setNetworkError(true);
       } else {
-        // 422 ou outro erro HTTP inesperado: trata como erro generico de rede
         setNetworkError(true);
       }
     } finally {
@@ -98,14 +86,10 @@ export default function SentenceBuilder({
 
   return (
     <div className="exercise">
-      {/* Termo-alvo: elemento visual principal */}
       <p className="exercise__sentence" lang="en">
         {exercise.prompt}
       </p>
 
-      {/* Traducao do termo. Cards novos trazem focus_term_translation; cards
-          antigos (antes dessa feature) caem na traducao da frase inteira, para
-          que o aluno nunca fique sem saber o significado do termo indicado. */}
       {exercise.card.focus_term_translation != null ? (
         <p className="exercise__hint sentence-builder__term-translation">
           {exercise.card.focus_term_translation}
@@ -116,7 +100,6 @@ export default function SentenceBuilder({
         </p>
       ) : null}
 
-      {/* Botão de dica — mostra a frase de exemplo do card antes de resolver */}
       {!isResolved ? (
         <div className="sentence-builder__hint-row">
           <button
@@ -139,7 +122,6 @@ export default function SentenceBuilder({
         </div>
       ) : null}
 
-      {/* Campo de escrita */}
       <textarea
         className="field__input sentence-builder__textarea"
         aria-label="Escreva sua frase em inglês"
@@ -153,7 +135,6 @@ export default function SentenceBuilder({
         placeholder="Digite uma frase em inglês…"
       />
 
-      {/* Aviso de possiveis erros de digitacao — aparece em tempo real */}
       {typos.length > 0 && !isResolved && (
         <div className="spell-hint" role="status" aria-live="polite">
           <span className="spell-hint__icon" aria-hidden="true">✏️</span>
@@ -174,7 +155,6 @@ export default function SentenceBuilder({
         </div>
       )}
 
-      {/* Erro de rede */}
       {networkError ? (
         <div className="exercise__feedback" role="alert">
           <p className="feedback feedback--bad">
@@ -190,27 +170,55 @@ export default function SentenceBuilder({
         </div>
       ) : null}
 
-      {/* Feedback de validacao (invalido) — so quando nao esta em erro de rede */}
       {!networkError && feedback != null ? (
         <div className="exercise__feedback" role="alert">
           <p className="feedback feedback--bad">{feedback}</p>
         </div>
       ) : null}
 
-      {/* Feedback de sucesso — so apos resolucao correta */}
       {isResolved && wasCorrect === true && !networkError ? (
         <div className="exercise__feedback">
           <p className="feedback feedback--ok">Muito bem!</p>
-          {/* Reproduz a frase que o aluno criou — o speak() inicial é no useEffect */}
-          <div className="sentence-builder__replay">
-            <span className="exercise__hint">Sua frase:</span>
-            <span className="sentence-builder__student-sentence" lang="en">{text.trim()}</span>
-            <AudioButton text={text.trim()} label="Ouvir sua frase" />
-          </div>
+          <button
+            type="button"
+            className="sentence-builder__replay"
+            onClick={() => void speak(text.trim())}
+            title="Clique para ouvir sua frase"
+            aria-label="Ouvir sua frase"
+          >
+            <div className="sentence-builder__replay-header">
+              <span className="exercise__hint">Sua frase:</span>
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden="true"
+                focusable="false"
+                className="sentence-builder__replay-icon"
+              >
+                <path
+                  d="M4 9.5h3.2L12 5.5v13l-4.8-4H4v-5Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M15.5 9c1.2 1 1.2 5 0 6M18 6.5c2.2 2 2.2 9 0 11"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <span className="sentence-builder__student-sentence" lang="en">
+              {text.trim()}
+            </span>
+          </button>
         </div>
       ) : null}
 
-      {/* Botao de submissao */}
       {!isResolved ? (
         <ActionBarSlot>
           <div className="exercise__actions">
@@ -227,7 +235,6 @@ export default function SentenceBuilder({
         </ActionBarSlot>
       ) : null}
 
-      {/* Frase de exemplo exibida apos resolucao */}
       {isResolved ? (
         <div className="exercise__feedback">
           <p className="exercise__hint">Exemplo do card:</p>

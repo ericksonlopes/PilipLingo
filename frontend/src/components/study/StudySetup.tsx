@@ -3,9 +3,7 @@ import type { RefObject } from "react";
 
 import type { ExerciseMode, StudyModeOption, StudyOptions } from "../../lib/types";
 
-/* ------------------------------------------------------------------ */
-/*  Ícones inline — SVG simples, sem dependência externa               */
-/* ------------------------------------------------------------------ */
+/* Inline SVG icons */
 
 function IconTyping() {
   return (
@@ -141,10 +139,6 @@ function IconTheme() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                             */
-/* ------------------------------------------------------------------ */
-
 function IconSentenceBuilder() {
   return (
     <svg
@@ -198,10 +192,6 @@ function modeDescription(mode: ExerciseMode): string {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Subcomponente: ModeCard — um toggle-card por modo de exercício     */
-/* ------------------------------------------------------------------ */
-
 interface ModeCardProps {
   option: StudyModeOption;
   isSelected: boolean;
@@ -220,13 +210,10 @@ function ModeCard({ option, isSelected, onToggle }: ModeCardProps) {
         checked={isSelected}
         onChange={onToggle}
       />
-      {/* Indicador de seleção (substitui o checkbox nativo) */}
       <span className="mode-card__check" aria-hidden="true">
         {isSelected && <IconCheck />}
       </span>
-      {/* Ícone do modo */}
       <span className="mode-card__icon">{modeIcon(option.mode)}</span>
-      {/* Texto */}
       <span className="mode-card__body">
         <span className="mode-card__label">{option.label}</span>
         <span className="mode-card__desc">{modeDescription(option.mode)}</span>
@@ -234,10 +221,6 @@ function ModeCard({ option, isSelected, onToggle }: ModeCardProps) {
     </label>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Subcomponente: ThemeSelector — seleção segmentada em 3 abas       */
-/* ------------------------------------------------------------------ */
 
 type ThemeTabMode = "SURPRISE" | "SUGGESTED" | "CUSTOM";
 
@@ -250,7 +233,6 @@ interface ThemeSelectorProps {
 function ThemeSelector({ themes, value, onChange }: ThemeSelectorProps) {
   const suggestedThemes = themes.filter((t) => t.theme !== null);
 
-  // Determina o modo inicial a partir do value
   const initialMode: ThemeTabMode = (() => {
     if (value === null || value === "") return "SURPRISE";
     if (suggestedThemes.some((t) => t.theme === value)) return "SUGGESTED";
@@ -307,7 +289,6 @@ function ThemeSelector({ themes, value, onChange }: ThemeSelectorProps) {
 
   return (
     <div className="theme-selector-card">
-      {/* Abas segmentadas */}
       <div className="theme-segment-tabs" role="tablist" aria-label="Modo de escolha do tema">
         <button
           type="button"
@@ -338,7 +319,6 @@ function ThemeSelector({ themes, value, onChange }: ThemeSelectorProps) {
         </button>
       </div>
 
-      {/* Conteúdo dinâmico da aba */}
       <div className="theme-segment-content">
         {activeTab === "SURPRISE" && (
           <div className="theme-panel theme-panel--surprise">
@@ -412,7 +392,6 @@ function ThemeSelector({ themes, value, onChange }: ThemeSelectorProps) {
         )}
       </div>
 
-      {/* Resumo do tema ativo */}
       <div className="theme-active-footer">
         <span className="theme-active-footer__label">Tema selecionado:</span>
         <span className="theme-active-footer__value">{activeLabel}</span>
@@ -449,10 +428,6 @@ function SessionLimitPicker({ value, onChange }: SessionLimitPickerProps) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Skeleton de loading                                                 */
-/* ------------------------------------------------------------------ */
-
 function SetupSkeleton() {
   return (
     <div className="setup-skeleton" aria-hidden="true">
@@ -464,10 +439,6 @@ function SetupSkeleton() {
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Componente principal: StudySetup                                    */
-/* ------------------------------------------------------------------ */
 
 export const STUDY_SETUP_SESSION_LIMIT_OPTIONS = SESSION_LIMIT_OPTIONS;
 
@@ -530,7 +501,6 @@ export default function StudySetup({
 
   return (
     <section className="page study-setup" aria-busy={isLoading}>
-      {/* ---- Cabeçalho ---- */}
       <div className="setup-header">
         <p className="page__eyebrow">Preparar sessão</p>
         <h1 ref={headingRef} className="page__title" tabIndex={-1}>
@@ -541,7 +511,6 @@ export default function StudySetup({
         </p>
       </div>
 
-      {/* ---- Estados: loading / erro ---- */}
       {isLoading && <SetupSkeleton />}
 
       {error !== null && (
@@ -553,7 +522,6 @@ export default function StudySetup({
         </div>
       )}
 
-      {/* ---- Conteúdo principal (só após carregar sem erro) ---- */}
       {!isLoading && error === null && options !== null && (
         <>
           {options.modes.length === 0 || options.themes.length === 0 ? (
@@ -563,7 +531,6 @@ export default function StudySetup({
             </div>
           ) : (
             <>
-              {/* ---- TEMA (DESTAQUE PRINCIPAL) ---- */}
               <div className="field setup-theme-field setup-theme-field--hero">
                 <span className="field__label setup-theme-field__label">
                   <IconTheme />
@@ -580,7 +547,6 @@ export default function StudySetup({
                 </p>
               </div>
 
-              {/* ---- CONFIGURAÇÕES SECUNDÁRIAS (FORMATOS E QUANTIDADE) ---- */}
               <div
                 className={`study-config-accordion${
                   isConfigExpanded ? " study-config-accordion--open" : ""
@@ -620,7 +586,6 @@ export default function StudySetup({
 
                 {isConfigExpanded && (
                   <div className="study-config-accordion__body">
-                    {/* Formatos de exercício */}
                     <fieldset className="field mode-fieldset" aria-describedby="study-mode-hint">
                       <div className="mode-card-header">
                         <legend className="field__label">Formatos de exercício</legend>
@@ -676,7 +641,6 @@ export default function StudySetup({
                       </p>
                     </fieldset>
 
-                    {/* Quantidade */}
                     <div className="field">
                       <div className="limit-picker-header">
                         <span className="field__label">Exercícios por sessão</span>
@@ -696,7 +660,6 @@ export default function StudySetup({
                 )}
               </div>
 
-              {/* ---- Aviso IA desligada ---- */}
               {!isAiEnabled && (
                 <p className="alert alert--warn" role="status">
                   Frases novas estão desligadas porque a IA não está configurada. Você
@@ -704,7 +667,6 @@ export default function StudySetup({
                 </p>
               )}
 
-              {/* ---- Rodapé fixo com botão Começar sessão ---- */}
               <div className="study-setup__footer">
                 <button
                   type="button"

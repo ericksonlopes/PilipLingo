@@ -15,7 +15,7 @@ import type { AuthUser } from "./lib/types";
 export default function App() {
   const auth = useAuth();
 
-  // Enquanto revalidamos o token guardado, evita piscar a tela de login.
+  // While validating stored token, prevent flashing login screen.
   if (auth.loading) {
     return (
       <div className="app-shell app-shell--onboarding">
@@ -24,8 +24,7 @@ export default function App() {
     );
   }
 
-  // Sem sessao: login/cadastro antes de qualquer outra coisa. Sem montar o app
-  // (nem seus fetches) enquanto o usuario nao esta autenticado.
+  // Without active session: show login/register before anything else.
   if (!auth.isAuthenticated || !auth.user) {
     return (
       <div className="app-shell app-shell--onboarding">
@@ -42,12 +41,12 @@ interface AuthenticatedAppProps {
   onLogout: () => void;
 }
 
-/** O app em si, montado apenas com um usuario logado (todos os fetches sao seguros). */
+/** Main authenticated app wrapper. */
 function AuthenticatedApp({ user, onLogout }: AuthenticatedAppProps) {
   const [isChangingLevel, setIsChangingLevel] = useState(false);
   const { level, setLevel, hasLevel } = useLevel();
 
-  // Primeira abertura: o usuario informa o nivel antes de usar o app.
+  // First launch: user selects initial proficiency level.
   if (!hasLevel || !level) {
     return (
       <div className="app-shell app-shell--onboarding">
@@ -78,6 +77,7 @@ function AuthenticatedApp({ user, onLogout }: AuthenticatedAppProps) {
           <Route path="/historico" element={<HistoryPage level={level} />} />
           <Route path="/chat" element={<ChatPage level={level} />} />
           <Route path="/traduzir" element={<TranslatePage />} />
+          <Route path="/historias" element={<Navigate to="/" replace />} />
           <Route path="/frases" element={<Navigate to="/" replace />} />
           <Route path="/praticar" element={<Navigate to="/" replace />} />
           <Route path="/vocabulario" element={<Navigate to="/" replace />} />

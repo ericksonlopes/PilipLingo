@@ -1,4 +1,4 @@
-"""Erros especificos do dominio vocabulary."""
+"""Domain errors specific to vocabulary slice."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ class VocabularyEntryNotFound(NotFoundError):
     code = "vocabulary_entry_not_found"
 
     def __init__(self, entry_id: UUID) -> None:
-        super().__init__(f"Item de vocabulario {entry_id} nao encontrado.")
+        super().__init__(f"Vocabulary item {entry_id} not found.")
         self.entry_id = entry_id
 
 
@@ -19,33 +19,33 @@ class DuplicatedTerm(ConflictError):
     code = "vocabulary_term_already_exists"
 
     def __init__(self, term: str) -> None:
-        super().__init__(f"O termo '{term}' ja existe no vocabulario.")
+        super().__init__(f"Term '{term}' already exists in vocabulary.")
         self.term = term
 
 
 class SentenceGeneratorNotConfigured(UnavailableError):
-    """Falta configurar a chave do provedor de IA."""
+    """AI provider key is not configured."""
 
     code = "sentence_generator_not_configured"
 
     def __init__(self) -> None:
         super().__init__(
-            "Geracao de frases indisponivel: configure PILIPLINGO_GOOGLE_API_KEY no backend."
+            "Sentence generation unavailable: configure PILIPLINGO_GOOGLE_API_KEY in backend."
         )
 
 
 class SentenceGenerationFailed(UnavailableError):
-    """O provedor de IA falhou ou devolveu conteudo inutilizavel."""
+    """AI provider failed or returned unusable content."""
 
     code = "sentence_generation_failed"
 
     def __init__(self, detail: str) -> None:
-        super().__init__(f"Nao foi possivel gerar as frases agora: {detail}")
+        super().__init__(f"Could not generate sentences now: {detail}")
 
 
 class StudyCardNotFound(NotFoundError):
     code = "study_card_not_found"
 
     def __init__(self, card_id: UUID) -> None:
-        super().__init__(f"Card de estudo {card_id} nao encontrado.")
+        super().__init__(f"Study card {card_id} not found.")
         self.card_id = card_id

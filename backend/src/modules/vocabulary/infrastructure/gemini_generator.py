@@ -1,7 +1,6 @@
-"""Adaptador de geracao de frases com LangChain + Gemini.
+"""Sentence generation adapter with LangChain + Gemini.
 
-Todo o conhecimento sobre LLM vive aqui. O caso de uso so conhece a porta
-`SentenceGenerator`, entao trocar de provedor nao afeta dominio nem aplicacao.
+All LLM details live here. The use case only knows SentenceGenerator port.
 """
 
 from __future__ import annotations
@@ -102,7 +101,7 @@ _HUMAN_PROMPT = "Generate the sentences now."
 
 
 class _ChunkItem(BaseModel):
-    """Um bloco da analise estrutural."""
+    """A block for structural analysis."""
 
     text: str = Field(description="The block exactly as it appears in the sentence.")
     role: str = Field(description="Short grammatical label in English.")
@@ -110,7 +109,7 @@ class _ChunkItem(BaseModel):
 
 
 class _VocabularyItem(BaseModel):
-    """Um item de vocabulario extraido da frase."""
+    """A vocabulary item extracted from the sentence."""
 
     term: str = Field(description="An English word or expression from the sentence.")
     translation: str = Field(
@@ -119,7 +118,7 @@ class _VocabularyItem(BaseModel):
 
 
 class _SentenceItem(BaseModel):
-    """Formato estruturado exigido do modelo."""
+    """Structured format required from the model."""
 
     text: str = Field(description="The sentence in English.")
     translation: str = Field(description="Brazilian Portuguese translation of the full sentence.")
@@ -150,7 +149,7 @@ class _SentenceBatch(BaseModel):
 
 
 class GeminiSentenceGenerator(SentenceGenerator):
-    """Implementa a porta usando um chat model do LangChain com saida estruturada."""
+    """Implements port using LangChain chat model with structured output."""
 
     def __init__(self, chat_model: BaseChatModel) -> None:
         self._model_name = getattr(chat_model, "model", "unknown")
@@ -160,7 +159,7 @@ class GeminiSentenceGenerator(SentenceGenerator):
 
     async def generate(self, request: SentenceRequest) -> list[GeneratedSentence]:
         logger.info(
-            "[gemini] chamando API | model=%s level=%s count=%d topic=%r",
+            "[gemini] calling API | model=%s level=%s count=%d topic=%r",
             self._model_name,
             request.level.value,
             request.count,
@@ -179,15 +178,15 @@ class GeminiSentenceGenerator(SentenceGenerator):
                 }
             )
             elapsed = time.monotonic() - t0
-            logger.info("[gemini] resposta recebida em %.1fs", elapsed)
-        except Exception as cause:  # noqa: BLE001 - fronteira com servico externo
+            logger.info("[gemini] response received in %.1fs", elapsed)
+        except Exception as cause:  # noqa: BLE001
             elapsed = time.monotonic() - t0
             logger.warning(
-                "[gemini] falha apos %.1fs | %s: %s",
+                "[gemini] failed after %.1fs | %s: %s",
                 elapsed, type(cause).__name__, cause,
             )
             raise SentenceGenerationFailed(
-                "o provedor de IA nao respondeu como esperado"
+                "AI provider did not respond as expected"
             ) from cause
 
         return self._to_domain(result, request)
@@ -214,12 +213,12 @@ class GeminiSentenceGenerator(SentenceGenerator):
     @classmethod
     def _to_domain(cls, result: object, request: SentenceRequest) -> list[GeneratedSentence]:
         if not isinstance(result, _SentenceBatch) or not result.sentences:
-            raise SentenceGenerationFailed("resposta vazia do provedor de IA")
+            raise SentenceGenerationFailed("empty response from AI provider")
 
         sentences: list[GeneratedSentence] = []
         for item in result.sentences[: request.count]:
             if not item.text.strip() or not item.translation.strip():
-                logger.warning("[gemini] frase ignorada: text ou translation vazios")
+                logger.warning("[gemini] ignored sentence: text or translation empty")
                 continue
             text = item.text.strip()
             chunks = cls._build_chunks(item.chunks, sentence=text)
@@ -238,7 +237,7 @@ class GeminiSentenceGenerator(SentenceGenerator):
                 )
             )
             logger.debug(
-                "[gemini] frase aceita | focus=%r chunks=%d vocab=%d texto=%r",
+                "[gemini] accepted sentence | focus=%r chunks=%d vocab=%d text=%r",
                 (item.focus_term or "").strip() or None,
                 len(chunks),
                 len(vocabulary),
@@ -246,10 +245,10 @@ class GeminiSentenceGenerator(SentenceGenerator):
             )
 
         if not sentences:
-            raise SentenceGenerationFailed("nenhuma frase utilizavel foi retornada")
+            raise SentenceGenerationFailed("no usable sentence was returned")
 
         logger.info(
-            "[gemini] %d/%d frases aprovadas no _to_domain",
+            "[gemini] %d/%d sentences approved in _to_domain",
             len(sentences),
             len(result.sentences),
         )
@@ -257,12 +256,7 @@ class GeminiSentenceGenerator(SentenceGenerator):
 
     @staticmethod
     def _build_vocabulary(items: list[_VocabularyItem]) -> list[SentenceVocabularyItem]:
-        """Converte os itens de vocabulario da IA, deduplicando por termo.
-
-        Descarta itens invalidos individualmente (term/translation vazios ou longos
-        demais) em vez de derrubar a frase inteira: uma frase sem vocabulario ainda
-        cai no fallback do focus_term no historico.
-        """
+        """Converts AI vocabulary items, deduplicating by term."""
         vocabulary: list[SentenceVocabularyItem] = []
         seen: set[str] = set()
         for item in items:
@@ -274,7 +268,7 @@ class GeminiSentenceGenerator(SentenceGenerator):
                     SentenceVocabularyItem.create(term=item.term, translation=item.translation)
                 )
             except ValidationError as cause:
-                logger.info("[gemini] item de vocabulario descartado: %s", cause.message)
+                logger.info("[gemini] vocabulary item discarded: %s", cause.message)
                 continue
             seen.add(key)
             if len(vocabulary) >= MAX_VOCABULARY_PER_SENTENCE:
@@ -283,13 +277,7 @@ class GeminiSentenceGenerator(SentenceGenerator):
 
     @staticmethod
     def _build_chunks(items: list[_ChunkItem], *, sentence: str) -> list[SentenceChunk]:
-        """Aceita a analise estrutural so se ela reconstruir a frase original.
-
-        Os blocos viram as pecas do exercicio BLOCK_TRANSLATION, cuja resposta
-        certa e a frase inteira. Se o modelo inventar, cortar ou reordenar
-        palavras, o exercicio ficaria impossivel de acertar: nesse caso e melhor
-        descartar a analise e deixar o card cair no fallback por palavras.
-        """
+        """Accepts structural analysis only if it reconstructs original sentence."""
         if not items:
             return []
 
@@ -299,13 +287,13 @@ class GeminiSentenceGenerator(SentenceGenerator):
                 for item in items
             ]
         except ValidationError as cause:
-            logger.info("[gemini] chunks descartados (bloco invalido): %s", cause.message)
+            logger.info("[gemini] chunks discarded (invalid block): %s", cause.message)
             return []
 
         rebuilt = _collapse_spaces(" ".join(chunk.text for chunk in chunks))
         if rebuilt != _collapse_spaces(sentence):
             logger.info(
-                "[gemini] chunks descartados (nao reconstroem a frase) | esperado=%r recebido=%r",
+                "[gemini] chunks discarded (mismatched sentence) | expected=%r received=%r",
                 _collapse_spaces(sentence),
                 rebuilt,
             )

@@ -1,4 +1,4 @@
-"""Entidades e value objects de vocabulary. Sem dependencia de framework ou ORM."""
+"""Entities and value objects for vocabulary slice. No framework or ORM dependencies."""
 
 from __future__ import annotations
 
@@ -13,17 +13,16 @@ MAX_TERM_LENGTH = 120
 MAX_TRANSLATION_LENGTH = 240
 MAX_EXAMPLE_LENGTH = 500
 MAX_TOPIC_LENGTH = 120
-# Teto de termos que uma unica geracao de frases pode praticar.
+# Cap of terms that a single sentence generation request can practice.
 MAX_TERMS_PER_REQUEST = 5
 
 MAX_CHUNK_TEXT_LENGTH = 120
 MAX_CHUNK_ROLE_LENGTH = 80
 MAX_CHUNK_EXPLANATION_LENGTH = 280
-# Uma frase util para estudo nao passa disso; protege contra resposta degenerada da IA.
+# Max chunks per sentence for study protection.
 MAX_CHUNKS_PER_SENTENCE = 12
 
-# Teto de itens de vocabulario extraidos de uma unica frase. Protege contra
-# resposta degenerada da IA que tentaria transformar cada palavra em um item.
+# Max vocabulary items extracted per sentence.
 MAX_VOCABULARY_PER_SENTENCE = 8
 
 
@@ -50,9 +49,9 @@ __all__ = [
 def _clean(value: str, *, field_name: str, max_length: int) -> str:
     text = (value or "").strip()
     if not text:
-        raise ValidationError(f"'{field_name}' nao pode ser vazio.")
+        raise ValidationError(f"'{field_name}' cannot be empty.")
     if len(text) > max_length:
-        raise ValidationError(f"'{field_name}' excede {max_length} caracteres.")
+        raise ValidationError(f"'{field_name}' exceeds {max_length} characters.")
     return text
 
 
@@ -63,13 +62,13 @@ def _clean_optional(value: str | None, *, field_name: str, max_length: int) -> s
     if not text:
         return None
     if len(text) > max_length:
-        raise ValidationError(f"'{field_name}' excede {max_length} caracteres.")
+        raise ValidationError(f"'{field_name}' exceeds {max_length} characters.")
     return text
 
 
 @dataclass(slots=True)
 class VocabularyEntry:
-    """Um item de vocabulario: termo em ingles + traducao em portugues."""
+    """A vocabulary item: English term + Portuguese translation."""
 
     id: UUID
     term: str
@@ -90,7 +89,7 @@ class VocabularyEntry:
         level: ProficiencyLevel = ProficiencyLevel.A1,
         tags: list[str] | None = None,
     ) -> VocabularyEntry:
-        """Fabrica que garante as invariantes da entidade."""
+        """Factory ensuring entity invariants."""
         now = datetime.now(UTC)
         return cls(
             id=uuid4(),
@@ -113,7 +112,7 @@ class VocabularyEntry:
         level: ProficiencyLevel | None = None,
         tags: list[str] | None = None,
     ) -> None:
-        """Aplica alteracoes parciais mantendo as invariantes."""
+        """Applies partial updates maintaining invariants."""
         if translation is not None:
             self.translation = _clean(
                 translation, field_name="translation", max_length=MAX_TRANSLATION_LENGTH
@@ -130,7 +129,7 @@ class VocabularyEntry:
 
     @property
     def normalized_term(self) -> str:
-        """Chave de unicidade do termo (case-insensitive)."""
+        """Uniqueness key for the term (case-insensitive)."""
         return self.term.casefold()
 
     @staticmethod
@@ -147,13 +146,7 @@ class VocabularyEntry:
 
 @dataclass(frozen=True, slots=True)
 class SentenceChunk:
-    """Um bloco logico da frase, com o papel que ele cumpre e o porque.
-
-    E a unidade da "Analise Estrutural": em vez de traduzir palavra por palavra, o
-    aluno ve como a frase foi montada. Ex.: text="I've been",
-    role="Present Perfect Continuous", explanation="acao que comecou no passado e
-    continua acontecendo".
-    """
+    """A logical block of a sentence with its role and explanation."""
 
     text: str
     role: str
@@ -161,7 +154,7 @@ class SentenceChunk:
 
     @classmethod
     def create(cls, *, text: str, role: str, explanation: str) -> SentenceChunk:
-        """Fabrica que normaliza e valida os limites de cada campo."""
+        """Factory that normalizes and validates field constraints."""
         return cls(
             text=_clean(text, field_name="chunk.text", max_length=MAX_CHUNK_TEXT_LENGTH),
             role=_clean(role, field_name="chunk.role", max_length=MAX_CHUNK_ROLE_LENGTH),
@@ -175,24 +168,19 @@ class SentenceChunk:
 
 def _validate_chunks(chunks: list[SentenceChunk]) -> None:
     if len(chunks) > MAX_CHUNKS_PER_SENTENCE:
-        raise ValidationError(f"Uma frase nao pode ter mais de {MAX_CHUNKS_PER_SENTENCE} blocos.")
+        raise ValidationError(f"A sentence cannot have more than {MAX_CHUNKS_PER_SENTENCE} chunks.")
 
 
 @dataclass(frozen=True, slots=True)
 class SentenceVocabularyItem:
-    """Uma palavra ou expressao da frase com a traducao em portugues.
-
-    Diferente de `SentenceChunk` (analise gramatical estrutural), este e um item
-    de vocabulario pronto para ir ao historico "Palavras": ex.: term="brushed her
-    teeth", translation="escovou os dentes". Uma frase gera varios destes.
-    """
+    """A word or expression from a sentence with Portuguese translation."""
 
     term: str
     translation: str
 
     @classmethod
     def create(cls, *, term: str, translation: str) -> SentenceVocabularyItem:
-        """Fabrica que normaliza e valida os limites de cada campo."""
+        """Factory that normalizes and validates field constraints."""
         return cls(
             term=_clean(term, field_name="vocabulary.term", max_length=MAX_TERM_LENGTH),
             translation=_clean(
@@ -206,40 +194,34 @@ class SentenceVocabularyItem:
 def _validate_vocabulary(vocabulary: list[SentenceVocabularyItem]) -> None:
     if len(vocabulary) > MAX_VOCABULARY_PER_SENTENCE:
         raise ValidationError(
-            f"Uma frase nao pode ter mais de {MAX_VOCABULARY_PER_SENTENCE} itens de vocabulario."
+            f"A sentence cannot have more than {MAX_VOCABULARY_PER_SENTENCE} vocabulary items."
         )
 
 
 @dataclass(frozen=True, slots=True)
 class GeneratedSentence:
-    """Uma frase de exemplo em ingles com traducao e analise estrutural."""
+    """An example sentence in English with translation and structural analysis."""
 
     text: str
     translation: str
     level: ProficiencyLevel
     focus_term: str | None = None
-    # Traducao do termo-alvo em portugues (ex.: "brush my teeth" -> "escovar os dentes").
-    # Distinto de `translation`, que e a frase inteira.
     focus_term_translation: str | None = None
-    # Vazio quando a IA nao devolveu analise utilizavel: a frase ainda serve para
-    # estudar, so nao tem o "Entender Estrutura".
     chunks: list[SentenceChunk] = field(default_factory=list)
-    # Itens de vocabulario da frase (varias palavras/expressoes com traducao).
-    # Alimentam o historico "Palavras". Vazio cai no fallback do focus_term.
     vocabulary: list[SentenceVocabularyItem] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.text.strip():
-            raise ValidationError("A frase gerada nao pode ser vazia.")
+            raise ValidationError("Generated sentence cannot be empty.")
         if not self.translation.strip():
-            raise ValidationError("A traducao da frase gerada nao pode ser vazia.")
+            raise ValidationError("Translation of generated sentence cannot be empty.")
         _validate_chunks(self.chunks)
         _validate_vocabulary(self.vocabulary)
 
 
 @dataclass(frozen=True, slots=True)
 class SentenceRequest:
-    """Pedido de geracao de frases, ja validado pelas regras do dominio."""
+    """Request for sentence generation, validated by domain rules."""
 
     level: ProficiencyLevel
     count: int
@@ -256,11 +238,11 @@ class SentenceRequest:
         terms: list[str] | None = None,
         topic: str | None = None,
     ) -> SentenceRequest:
-        """Fabrica que garante as invariantes do pedido."""
+        """Factory enforcing request invariants."""
         if count < 1:
-            raise ValidationError("Peca ao menos uma frase.")
+            raise ValidationError("Request at least one sentence.")
         if count > max_count:
-            raise ValidationError(f"Maximo de {max_count} frases por requisicao.")
+            raise ValidationError(f"Maximum of {max_count} sentences per request.")
 
         return cls(
             level=level,
@@ -274,16 +256,15 @@ class SentenceRequest:
         if not terms:
             return []
 
-        # Deduplica case-insensitive preservando a grafia original do usuario.
         unique: dict[str, str] = {}
         for term in terms:
             cleaned = term.strip()
             if not cleaned:
                 continue
             if len(cleaned) > MAX_TERM_LENGTH:
-                raise ValidationError(f"O termo '{cleaned[:20]}...' e longo demais.")
+                raise ValidationError(f"Term '{cleaned[:20]}...' is too long.")
             unique.setdefault(cleaned.casefold(), cleaned)
 
         if len(unique) > MAX_TERMS_PER_REQUEST:
-            raise ValidationError(f"Envie no maximo {MAX_TERMS_PER_REQUEST} termos.")
+            raise ValidationError(f"Send at most {MAX_TERMS_PER_REQUEST} terms.")
         return list(unique.values())

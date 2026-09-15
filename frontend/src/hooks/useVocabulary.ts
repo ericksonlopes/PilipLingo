@@ -18,7 +18,7 @@ interface UseVocabularyResult {
   removeEntry: (id: string) => Promise<void>;
 }
 
-/** Estado da lista de vocabulario com busca debounced e cancelamento de request. */
+/** Vocabulary list state management with debounced search. */
 export function useVocabulary(search: string): UseVocabularyResult {
   const [entries, setEntries] = useState<VocabularyEntry[]>([]);
   const [total, setTotal] = useState(0);
@@ -42,7 +42,7 @@ export function useVocabulary(search: string): UseVocabularyResult {
       })
       .catch((cause: unknown) => {
         if (!active || controller.signal.aborted) return;
-        setError(cause instanceof ApiError ? cause.message : "Nao foi possivel carregar.");
+        setError(cause instanceof ApiError ? cause.message : "Não foi possível carregar.");
       })
       .finally(() => {
         if (active) setIsLoading(false);

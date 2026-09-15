@@ -31,28 +31,26 @@ import type {
 } from "./types";
 
 /**
- * Em dev o proxy do Vite encaminha /api para o backend; em producao/container
- * defina VITE_API_URL (ex.: http://localhost:8000/api/v1).
+ * In dev, Vite proxy forwards /api to backend; in prod/container
+ * define VITE_API_URL (e.g. http://localhost:8000/api/v1).
  */
 const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "/api/v1").replace(/\/$/, "");
 
 const TOKEN_STORAGE_KEY = "piliplingo.token";
 
-// Token de acesso mantido em memoria e espelhado no localStorage. Fica aqui, na
-// camada de rede, para que toda requisicao ganhe o header Authorization sem que
-// cada chamada precise se lembrar disso.
+// Access token kept in memory and mirrored in localStorage.
 let authToken: string | null = readStoredToken();
 
 function readStoredToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_STORAGE_KEY);
   } catch {
-    // Modo privado/storage bloqueado: segue sem persistir.
+    // Private mode / storage blocked: proceed without persisting.
     return null;
   }
 }
 
-/** Define (ou limpa) o token usado em todas as chamadas seguintes. */
+/** Sets (or clears) the token used in all subsequent calls. */
 export function setAuthToken(token: string | null): void {
   authToken = token;
   try {
@@ -62,7 +60,7 @@ export function setAuthToken(token: string | null): void {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
   } catch {
-    // ignora falha de persistencia
+    // ignore persistence error
   }
 }
 
@@ -95,7 +93,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    throw new ApiError("Sem conexao com o servidor.", 0, "network_error");
+    throw new ApiError("Sem conexão com o servidor.", 0, "network_error");
   }
 
   if (response.status === 204) {
@@ -108,7 +106,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const errorBody = body as ApiErrorBody | null;
     throw new ApiError(
-      errorBody?.error?.message ?? `Falha na requisicao (HTTP ${response.status}).`,
+      errorBody?.error?.message ?? `Falha na requisição (HTTP ${response.status}).`,
       response.status,
       errorBody?.error?.code ?? "http_error",
     );
@@ -134,7 +132,7 @@ export interface StudySessionParams {
 }
 
 export const authApi = {
-  /** Cria a conta e ja devolve o token para entrar direto. */
+  /** Creates account and returns token to login immediately. */
   register(input: AuthCredentials) {
     return request<AuthResult>("/auth/register", {
       method: "POST",
@@ -142,7 +140,7 @@ export const authApi = {
     });
   },
 
-  /** Autentica usuario + senha. */
+  /** Authenticates user + password. */
   login(input: AuthCredentials) {
     return request<AuthResult>("/auth/login", {
       method: "POST",
@@ -150,7 +148,7 @@ export const authApi = {
     });
   },
 
-  /** Dados do usuario logado; usado para validar o token guardado ao abrir o app. */
+  /** Authenticated user data; used to validate stored token on app launch. */
   me(signal?: AbortSignal) {
     return request<AuthUser>("/auth/me", { signal });
   },
@@ -183,12 +181,12 @@ export const vocabularyApi = {
     return request<void>(`/vocabulary/${id}`, { method: "DELETE" });
   },
 
-  /** Informa se a geracao de frases por IA esta configurada no backend. */
+  /** Checks if AI sentence generation is configured in backend. */
   aiStatus(signal?: AbortSignal) {
     return request<AiStatus>("/vocabulary/sentences/status", { signal });
   },
 
-  /** Gera frases de exemplo no nivel do usuario, opcionalmente com o vocabulario salvo. */
+  /** Generates example sentences at user level, optionally using saved vocabulary. */
   generateSentences(input: GenerateSentencesInput, signal?: AbortSignal) {
     return request<GeneratedSentencesResult>("/vocabulary/sentences/generate", {
       method: "POST",
@@ -197,15 +195,15 @@ export const vocabularyApi = {
     });
   },
 
-  /** Fonte unica dos modos e temas exibidos no menu de preparacao. */
+  /** Single source for modes and themes displayed in setup menu. */
   studyOptions(signal?: AbortSignal) {
     return request<StudyOptions>("/vocabulary/study/options", { signal });
   },
 
-  /** Monta a sessao somente depois da confirmacao do menu de preparacao. */
+  /** Assembles study session after setup menu confirmation. */
   studySession({ level, limit, theme, modes, reset, signal }: StudySessionParams) {
     if (modes !== undefined && modes.length === 0) {
-      throw new ApiError("Selecione pelo menos um formato de exercicio.", 0, "empty_modes");
+      throw new ApiError("Selecione pelo menos um formato de exercício.", 0, "empty_modes");
     }
 
     const query = new URLSearchParams({ level });
@@ -224,7 +222,7 @@ export const vocabularyApi = {
     return request<StudySession>(`/vocabulary/study/today?${query.toString()}`, { signal });
   },
 
-  /** Descarta cards gerados que nunca foram revisados (sessao abandonada). */
+  /** Discards generated cards that were never reviewed (abandoned session). */
   resetStudySession(level: ProficiencyLevel, signal?: AbortSignal) {
     const query = new URLSearchParams({ level });
     return request<{ deleted: number }>(`/vocabulary/study/reset?${query.toString()}`, {
@@ -233,7 +231,7 @@ export const vocabularyApi = {
     });
   },
 
-  /** Registra o resultado da revisao e reagenda o card. */
+  /** Registers review result and reschedules card. */
   reviewCard(cardId: string, grade: ReviewGrade, signal?: AbortSignal) {
     return request<ReviewResult>(`/vocabulary/study/${cardId}/review`, {
       method: "POST",
@@ -242,7 +240,7 @@ export const vocabularyApi = {
     });
   },
 
-  /** Historico paginado de frases e palavras vistas pelo usuario. */
+  /** Paginated history of sentences and words seen by user. */
   studyHistory(
     { limit = 50, offset = 0 }: { limit?: number; offset?: number } = {},
     signal?: AbortSignal,
@@ -255,10 +253,10 @@ export const vocabularyApi = {
   },
 
   /**
-   * Salva as palavras vistas em uma sessao concluida.
+   * Saves words seen in a completed session.
    *
-   * `translations` traz as traducoes que ja temos do vocabulario gerado pela IA;
-   * o servidor so recorre ao tradutor externo para termos sem traducao.
+   * `translations` passes translations already present from AI vocabulary;
+   * server falls back to external translator for missing terms.
    */
   saveSessionWords(
     words: string[],
@@ -272,7 +270,7 @@ export const vocabularyApi = {
     });
   },
 
-  /** Valida a frase escrita pelo aluno no modo SENTENCE_BUILDER. */
+  /** Validates sentence written by student in SENTENCE_BUILDER mode. */
   validateSentenceBuilder(
     sentence: string,
     focusTerm: string,
@@ -297,22 +295,22 @@ export interface ListConversationsParams {
 }
 
 export const chatApi = {
-  /** Verifica se o servico de IA do chat esta disponivel. */
+  /** Checks if AI chat service is available. */
   status(signal?: AbortSignal) {
     return request<ChatStatus>("/chat/status", { signal });
   },
 
-  /** Lista topicos pre-definidos. */
+  /** Lists predefined topics. */
   topics(signal?: AbortSignal) {
     return request<ChatTopic[]>("/chat/topics", { signal });
   },
 
-  /** Lista metas pre-definidas. */
+  /** Lists predefined goals. */
   goals(signal?: AbortSignal) {
     return request<ChatGoal[]>("/chat/goals", { signal });
   },
 
-  /** Cria uma nova conversa. */
+  /** Creates a new conversation. */
   createConversation(input: CreateConversationInput) {
     return request<Conversation>("/chat/conversations", {
       method: "POST",
@@ -320,19 +318,19 @@ export const chatApi = {
     });
   },
 
-  /** Lista conversas do usuario com paginacao e filtro opcional de status. */
+  /** Lists user conversations with pagination and optional status filter. */
   listConversations({ limit = 20, offset = 0, status, signal }: ListConversationsParams = {}) {
     const query = new URLSearchParams({ limit: String(limit), offset: String(offset) });
     if (status) query.set("status", status);
     return request<ConversationPage>(`/chat/conversations?${query.toString()}`, { signal });
   },
 
-  /** Abandona uma conversa ativa (DELETE -> 204). */
+  /** Abandons an active conversation (DELETE -> 204). */
   deleteConversation(id: string) {
     return request<void>(`/chat/conversations/${id}`, { method: "DELETE" });
   },
 
-  /** Conclui uma conversa ativa com sucesso (POST -> 200). */
+  /** Completes an active conversation successfully (POST -> 200). */
   completeConversation(id: string, signal?: AbortSignal) {
     return request<Conversation>(`/chat/conversations/${id}/complete`, {
       method: "POST",
@@ -340,7 +338,7 @@ export const chatApi = {
     });
   },
 
-  /** Envia mensagem e recebe resposta da IA. */
+  /** Sends message and receives AI reply. */
   sendTurn(conversationId: string, userMessage: string, signal?: AbortSignal) {
     return request<SendTurnResult>(`/chat/conversations/${conversationId}/turns`, {
       method: "POST",
@@ -349,7 +347,7 @@ export const chatApi = {
     });
   },
 
-  /** Lista todos os turnos de uma conversa em ordem crescente. */
+  /** Lists all turns of a conversation in ascending order. */
   listTurns(conversationId: string, signal?: AbortSignal) {
     return request<ConversationTurn[]>(
       `/chat/conversations/${conversationId}/turns`,
@@ -359,7 +357,7 @@ export const chatApi = {
 };
 
 export const translationApi = {
-  /** Traduz uma frase e retorna analise estrutural em blocos. */
+  /** Translates phrase and returns structural block analysis. */
   translate(input: TranslateInput, signal?: AbortSignal) {
     return request<TranslationResult>("/vocabulary/translate", {
       method: "POST",

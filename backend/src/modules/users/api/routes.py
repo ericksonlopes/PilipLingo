@@ -1,4 +1,4 @@
-"""Rotas HTTP da fatia users: cadastro, login e sessao atual."""
+"""HTTP routes for users slice: registration, login, and current session."""
 
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     "/register",
     response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Cria um usuario e ja devolve o token de acesso",
-    responses={409: {"description": "Nome de usuario ja em uso"}},
+    summary="Create a user and return access token",
+    responses={409: {"description": "Username already taken"}},
 )
 async def register(payload: RegisterRequest, use_case: RegisterUseCaseDep) -> AuthResponse:
     result = await use_case.execute(
@@ -40,8 +40,8 @@ async def register(payload: RegisterRequest, use_case: RegisterUseCaseDep) -> Au
 @router.post(
     "/login",
     response_model=AuthResponse,
-    summary="Autentica usuario + senha e devolve o token de acesso",
-    responses={401: {"description": "Usuario ou senha invalidos"}},
+    summary="Authenticate username + password and return access token",
+    responses={401: {"description": "Invalid username or password"}},
 )
 async def login(payload: LoginRequest, use_case: AuthenticateUseCaseDep) -> AuthResponse:
     result = await use_case.execute(
@@ -53,8 +53,8 @@ async def login(payload: LoginRequest, use_case: AuthenticateUseCaseDep) -> Auth
 @router.get(
     "/me",
     response_model=UserResponse,
-    summary="Dados do usuario logado",
-    responses={401: {"description": "Token ausente, expirado ou invalido"}},
+    summary="Logged in user data",
+    responses={401: {"description": "Missing, expired, or invalid token"}},
 )
 async def me(current_user: CurrentUserDep) -> UserResponse:
     return UserResponse.from_entity(current_user)

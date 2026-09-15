@@ -1,7 +1,7 @@
-"""Adaptador Gemini para o AI_Tutor do chat.
+"""Gemini adapter for chat AI_Tutor.
 
-Todo o conhecimento sobre LLM vive aqui. O caso de uso so conhece a porta
-ChatAIPort, entao trocar de provedor nao afeta dominio nem aplicacao.
+All LLM knowledge lives here. The use case only knows the ChatAIPort
+interface, so swapping providers does not affect domain or application layers.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from modules.chat.domain.ports import ChatAIPort, TurnContext, TurnResult
 
 logger = logging.getLogger(__name__)
 
-# ---------- schemas Pydantic para saida estruturada ----------
+# ---------- Pydantic schemas for structured output ----------
 
 
 class _CorrectionItem(BaseModel):
@@ -46,7 +46,7 @@ class _FeedbackItem(BaseModel):
 
 
 class _TurnResponse(BaseModel):
-    """Resposta estruturada do AI_Tutor para um turno."""
+    """Structured response from AI_Tutor for a turn."""
 
     reply: str = Field(description="The AI conversational response in English.")
     feedback: _FeedbackItem | None = Field(
@@ -108,7 +108,7 @@ _HUMAN_PROMPT = "Student: {user_message}"
 
 
 class GeminiChatTutor(ChatAIPort):
-    """Implementa ChatAIPort usando LangChain + Gemini com saida estruturada."""
+    """Implements ChatAIPort using LangChain + Gemini with structured output."""
 
     def __init__(self, chat_model: BaseChatModel) -> None:
         self._model_name = getattr(chat_model, "model", "unknown")
@@ -121,7 +121,7 @@ class GeminiChatTutor(ChatAIPort):
         context_line = self._build_context_line(context)
 
         logger.info(
-            "[chat-gemini] chamando API | model=%s level=%s mode=%s",
+            "[chat-gemini] calling API | model=%s level=%s mode=%s",
             self._model_name,
             context.level,
             context.mode,
@@ -139,17 +139,17 @@ class GeminiChatTutor(ChatAIPort):
                 }
             )
             elapsed = time.monotonic() - t0
-            logger.info("[chat-gemini] resposta recebida em %.1fs", elapsed)
+            logger.info("[chat-gemini] response received in %.1fs", elapsed)
         except Exception as cause:  # noqa: BLE001
             elapsed = time.monotonic() - t0
             logger.warning(
-                "[chat-gemini] falha apos %.1fs | %s: %s",
+                "[chat-gemini] failed after %.1fs | %s: %s",
                 elapsed,
                 type(cause).__name__,
                 cause,
             )
             raise ChatAIUnavailable(
-                "O provedor de IA nao respondeu como esperado."
+                "The AI provider did not respond as expected."
             ) from cause
 
         return self._to_domain(result, context)
@@ -184,7 +184,7 @@ class GeminiChatTutor(ChatAIPort):
     @classmethod
     def _to_domain(cls, result: object, context: TurnContext) -> TurnResult:
         if not isinstance(result, _TurnResponse) or not (result.reply or "").strip():
-            raise ChatAIUnavailable("Resposta vazia do provedor de IA.")
+            raise ChatAIUnavailable("Empty response from AI provider.")
 
         feedback: TurnFeedback | None = None
         if result.feedback is not None:
@@ -207,7 +207,7 @@ class GeminiChatTutor(ChatAIPort):
                     suggestion=suggestion,
                 )
             except Exception:  # noqa: BLE001
-                logger.warning("[chat-gemini] feedback malformado, ignorando")
+                logger.warning("[chat-gemini] malformed feedback, ignoring")
                 feedback = None
 
         goals_progress: list[bool] = []

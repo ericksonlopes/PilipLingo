@@ -31,7 +31,7 @@ interface ExerciseResolution {
 }
 
 
-/** Menu de preparacao e sessao de estudo, um exercicio por vez. */
+/** Setup menu and study session, one exercise at a time. */
 export default function StudyPage({ level }: StudyPageProps) {
   const [hasStarted, setHasStarted] = useState(false);
   const [options, setOptions] = useState<StudyOptions | null>(null);
@@ -68,8 +68,6 @@ export default function StudyPage({ level }: StudyPageProps) {
   });
   const [resolution, setResolution] = useState<ExerciseResolution | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  // Desativado por padrao: o aluno decide quando avancar. Evita pular a correcao
-  // antes de ler o feedback.
   const [autoAdvance, setAutoAdvance] = useState(false);
   const [isAiEnabled, setIsAiEnabled] = useState(true);
   const setupHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -89,7 +87,6 @@ export default function StudyPage({ level }: StudyPageProps) {
     previousHasStarted.current = hasStarted;
   }, [hasStarted]);
 
-  // Ao trocar o bloco inteiro da tela, entrega o foco ao novo exercicio.
   useEffect(() => {
     if (!hasStarted || isLoading || current === null) return undefined;
     const frame = requestAnimationFrame(() => exerciseHeadingRef.current?.focus());
@@ -126,7 +123,6 @@ export default function StudyPage({ level }: StudyPageProps) {
     };
   }, [optionsReloadToken]);
 
-  // Cada exercicio comeca do zero, e nenhuma frase continua tocando ao trocar.
   useEffect(() => {
     autoAdvanceControllerRef.current?.abort();
     resolutionRef.current = null;
@@ -143,7 +139,6 @@ export default function StudyPage({ level }: StudyPageProps) {
     };
   }, []);
 
-  // Sem chave de IA a revisao continua, mas o tema nao gera frases novas.
   useEffect(() => {
     const controller = new AbortController();
     vocabularyApi
@@ -170,7 +165,6 @@ export default function StudyPage({ level }: StudyPageProps) {
     submitLockRef.current = false;
     setResolution(null);
     setIsSaving(false);
-    // Descarta cards nao revisados desta sessao abandonada
     void vocabularyApi.resetStudySession(level).catch(() => undefined);
   }
 
@@ -461,17 +455,9 @@ export default function StudyPage({ level }: StudyPageProps) {
 
       {currentResolution !== null ? <ChunkAnalysis card={current.card} /> : null}
 
-      {/* Barra de acoes fixa no rodape. O "Pular" fica sempre disponivel; quando o
-          exercicio e resolvido, ele sobe e da lugar a barra de Continuar. O slot
-          recebe os botoes de acao do exercicio (ex.: "Verificar") via portal. */}
       <div className="study-actions">
-        {/* Alvo do portal: os modos renderizam aqui o "Verificar"/"Dica". */}
         <div id={ACTION_BAR_SLOT_ID} className="study-actions__slot" />
 
-        {/* Escape para quando responder nao e possivel: microfone sem permissao,
-            sem fone para o ditado, ambiente barulhento. Nao vira nota, entao o card
-            volta como estava em vez de ser marcado como erro. So aparece antes de
-            resolver: uma vez corrigido, a unica acao e "Continuar". */}
         {currentResolution === null ? (
           <button
             type="button"
@@ -508,7 +494,7 @@ interface ExerciseViewProps {
   onRetry: () => void;
 }
 
-/** Escolhe o componente do modo definido para o exercicio. */
+/** Renders exercise view component matching exercise mode. */
 function ExerciseView({
   exercise,
   isResolved,

@@ -1,6 +1,6 @@
-"""Casos de uso da fatia chat.
+"""Use cases for chat slice.
 
-Uma classe por operacao, portas injetadas no __init__, sem commit nem HTTP.
+One class per operation, ports injected in __init__, no commit or HTTP.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 class GetChatStatus:
-    """Informa se o servico de IA esta disponivel."""
+    """Informs whether AI service is available."""
 
     def __init__(self, *, enabled: bool, model: str | None) -> None:
         self._enabled = enabled
@@ -56,7 +56,7 @@ class GetChatStatus:
 
 
 class ListTopics:
-    """Lista topicos pre-definidos."""
+    """Lists predefined topics."""
 
     def __init__(self, repo: TopicRepository) -> None:
         self._repo = repo
@@ -67,7 +67,7 @@ class ListTopics:
 
 
 class ListGoals:
-    """Lista metas pre-definidas."""
+    """Lists predefined goals."""
 
     def __init__(self, repo: GoalRepository) -> None:
         self._repo = repo
@@ -78,7 +78,7 @@ class ListGoals:
 
 
 class CreateConversation:
-    """Cria uma nova conversa validando modalidade e campos obrigatorios."""
+    """Creates a new conversation validating mode and required fields."""
 
     def __init__(self, repo: ConversationRepository) -> None:
         self._repo = repo
@@ -88,13 +88,13 @@ class CreateConversation:
             mode = ConversationMode(command.mode)
         except ValueError as exc:
             raise ValidationError(
-                f"Modalidade invalida: '{command.mode}'. Use FREE, TOPIC ou GOAL."
+                f"Invalid mode: '{command.mode}'. Use FREE, TOPIC, or GOAL."
             ) from exc
         try:
             level = ProficiencyLevel(command.level)
         except ValueError as exc:
             raise ValidationError(
-                f"Nivel invalido: '{command.level}'. Use A1, A2, B1, B2, C1 ou C2."
+                f"Invalid level: '{command.level}'. Use A1, A2, B1, B2, C1, or C2."
             ) from exc
 
         conversation = Conversation.create(
@@ -109,7 +109,7 @@ class CreateConversation:
 
 
 class CompleteConversation:
-    """Conclui explicitamente uma conversa ativa."""
+    """Explicitly completes an active conversation."""
 
     def __init__(self, repo: ConversationRepository) -> None:
         self._repo = repo
@@ -119,13 +119,13 @@ class CompleteConversation:
             command.conversation_id, user_id=command.user_id
         )
         if conv is None:
-            raise NotFoundError("Conversa nao encontrada.")
+            raise NotFoundError("Conversation not found.")
         conv.complete()
         return await self._repo.update_conversation(conv)
 
 
 class AbandonConversation:
-    """Abandona (soft delete) uma conversa ativa."""
+    """Abandons (soft delete) an active conversation."""
 
     def __init__(self, repo: ConversationRepository) -> None:
         self._repo = repo
@@ -135,29 +135,29 @@ class AbandonConversation:
             command.conversation_id, user_id=command.user_id
         )
         if conv is None:
-            raise NotFoundError("Conversa nao encontrada.")
+            raise NotFoundError("Conversation not found.")
         conv.abandon()
         await self._repo.update_conversation(conv)
 
 
 class ListConversations:
-    """Lista conversas do usuario com paginacao."""
+    """Lists user conversations with pagination."""
 
     def __init__(self, repo: ConversationRepository) -> None:
         self._repo = repo
 
     async def execute(self, query: ListConversationsQuery) -> ConversationPage:
         if query.limit < 1 or query.limit > 100:
-            raise ValidationError("'limit' deve ser entre 1 e 100.")
+            raise ValidationError("'limit' must be between 1 and 100.")
         if query.offset < 0:
-            raise ValidationError("'offset' deve ser maior ou igual a 0.")
+            raise ValidationError("'offset' must be greater than or equal to 0.")
 
         status: ConversationStatus | None = None
         if query.status is not None:
             try:
                 status = ConversationStatus(query.status)
             except ValueError as exc:
-                raise ValidationError(f"Status invalido: '{query.status}'.") from exc
+                raise ValidationError(f"Invalid status: '{query.status}'.") from exc
 
         items = await self._repo.list_conversations(
             user_id=query.user_id,
@@ -178,7 +178,7 @@ class ListConversations:
 
 
 class SendTurn:
-    """Envia mensagem, chama IA, persiste turno e atualiza estado da conversa."""
+    """Sends message, calls AI, persists turn, and updates conversation state."""
 
     def __init__(
         self,
@@ -196,10 +196,10 @@ class SendTurn:
         )
         if conv is None or conv.status != ConversationStatus.ACTIVE:
             raise ConflictError(
-                "Conversa nao encontrada ou nao esta ativa."
+                "Conversation not found or not active."
             )
 
-        # Historico dos ultimos 10 turnos para contexto da IA.
+        # History of last 10 turns for AI context.
         history_turns = await self._repo.last_turns(conv.id, limit=10)
         history = [(t.user_message, t.ai_reply) for t in history_turns]
 
@@ -222,12 +222,12 @@ class SendTurn:
         except ChatAIUnavailable:
             raise
         except Exception as exc:
-            logger.warning("[chat] falha no AI_Tutor: %s: %s", type(exc).__name__, exc)
+            logger.warning("[chat] AI_Tutor failed: %s: %s", type(exc).__name__, exc)
             raise ChatAIUnavailable(
-                "O servico de IA nao respondeu. Tente novamente em alguns instantes."
+                "AI service did not respond. Please try again in a few moments."
             ) from exc
 
-        # Conta turnos ja existentes para calcular turn_index e checar limite.
+        # Count existing turns to compute turn_index and check limit.
         turn_count = await self._repo.count_turns(conv.id)
         turn_index = turn_count + 1
 
@@ -270,7 +270,7 @@ class SendTurn:
 
 
 class GetTurns:
-    """Lista todos os turnos de uma conversa."""
+    """Lists all turns of a conversation."""
 
     def __init__(self, repo: ConversationRepository) -> None:
         self._repo = repo
@@ -280,12 +280,12 @@ class GetTurns:
             query.conversation_id, user_id=query.user_id
         )
         if conv is None:
-            raise NotFoundError("Conversa nao encontrada.")
+            raise NotFoundError("Conversation not found.")
         return await self._repo.list_turns(query.conversation_id, user_id=query.user_id)
 
 
 class SeedChatData:
-    """Popula topicos e metas na primeira inicializacao."""
+    """Populates topics and goals on first initialization."""
 
     def __init__(self, topics_repo: TopicRepository, goals_repo: GoalRepository) -> None:
         self._topics_repo = topics_repo

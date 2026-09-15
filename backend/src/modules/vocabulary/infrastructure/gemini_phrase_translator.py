@@ -1,14 +1,11 @@
-"""Adaptador de traducao avancada de frases usando LangChain + Gemini.
+"""Advanced phrase translation adapter using LangChain + Gemini.
 
-Suporta traducao nos dois sentidos:
-- Ingles → Portugues brasileiro
-- Portugues → Ingles
+Supports translation in both directions:
+- English -> Brazilian Portuguese
+- Portuguese -> English
 
-A analise estrutural de blocos e o assembly_summary sao SEMPRE sobre a frase
-em INGLES — independente da direcao — porque o objetivo e ensinar ingles.
-
-O dominio so conhece a porta PhraseTranslator; este modulo permanece isolado
-na camada de infraestrutura.
+The block structural analysis and assembly_summary are ALWAYS about the English
+phrase, regardless of input direction.
 """
 
 from __future__ import annotations
@@ -37,10 +34,6 @@ _WHITESPACE_RE = re.compile(r"\s+")
 def _collapse(value: str) -> str:
     return _WHITESPACE_RE.sub(" ", value).strip()
 
-
-# ---------------------------------------------------------------------------
-# Prompt
-# ---------------------------------------------------------------------------
 
 _SYSTEM_PROMPT = """\
 You are an expert English teacher and translator for Brazilian Portuguese learners.
@@ -89,10 +82,6 @@ Be precise. Never add words not in the corrected English phrase. Never reorder b
 _HUMAN_PROMPT = 'Phrase to translate and analyse: """{text}"""'
 
 
-# ---------------------------------------------------------------------------
-# Pydantic schemas para saida estruturada
-# ---------------------------------------------------------------------------
-
 class _CorrectionOut(BaseModel):
     original: str = Field(description="The exact erroneous fragment as written by the user.")
     corrected: str = Field(description="The correct form of that fragment.")
@@ -130,16 +119,8 @@ class _TranslationOut(BaseModel):
     )
 
 
-# ---------------------------------------------------------------------------
-# Adaptador
-# ---------------------------------------------------------------------------
-
 class GeminiPhraseTranslator(PhraseTranslator):
-    """Implementa PhraseTranslator usando o Gemini via LangChain structured output.
-
-    A analise de blocos e o assembly_summary sao sempre sobre a frase em ingles,
-    independente de a entrada ter sido em PT ou EN.
-    """
+    """Implements PhraseTranslator using Gemini via LangChain structured output."""
 
     def __init__(self, chat_model: BaseChatModel) -> None:
         self._model_name = getattr(chat_model, "model", "unknown")
@@ -149,7 +130,7 @@ class GeminiPhraseTranslator(PhraseTranslator):
 
     async def translate(self, text: str) -> PhraseTranslationResult:
         logger.info(
-            "[gemini-translate] chamando API | model=%s text=%r",
+            "[gemini-translate] calling API | model=%s text=%r",
             self._model_name,
             text[:80],
         )
@@ -157,17 +138,17 @@ class GeminiPhraseTranslator(PhraseTranslator):
         try:
             result = await self._chain.ainvoke({"text": text})
             elapsed = time.monotonic() - t0
-            logger.info("[gemini-translate] resposta em %.1fs", elapsed)
+            logger.info("[gemini-translate] response in %.1fs", elapsed)
         except Exception as cause:  # noqa: BLE001
             elapsed = time.monotonic() - t0
             logger.warning(
-                "[gemini-translate] falha apos %.1fs | %s: %s",
+                "[gemini-translate] failed after %.1fs | %s: %s",
                 elapsed,
                 type(cause).__name__,
                 cause,
             )
             raise SentenceGenerationFailed(
-                "o provedor de IA nao respondeu como esperado"
+                "AI provider did not respond as expected"
             ) from cause
 
         return self._to_domain(text, result)
@@ -175,11 +156,11 @@ class GeminiPhraseTranslator(PhraseTranslator):
     @staticmethod
     def _to_domain(original_input: str, result: object) -> PhraseTranslationResult:
         if not isinstance(result, _TranslationOut):
-            raise SentenceGenerationFailed("resposta vazia ou malformada do provedor de IA")
+            raise SentenceGenerationFailed("empty or malformed response from AI provider")
         if not result.english_phrase.strip():
-            raise SentenceGenerationFailed("frase em ingles vazia retornada pelo provedor de IA")
+            raise SentenceGenerationFailed("empty English phrase returned by AI provider")
         if not result.portuguese_phrase.strip():
-            raise SentenceGenerationFailed("frase em portugues vazia retornada pelo provedor de IA")
+            raise SentenceGenerationFailed("empty Portuguese phrase returned by AI provider")
 
         english = result.english_phrase.strip()
         portuguese = result.portuguese_phrase.strip()
@@ -208,11 +189,7 @@ class GeminiPhraseTranslator(PhraseTranslator):
 
     @staticmethod
     def _build_chunks(items: list[_ChunkOut], *, sentence: str) -> list[TranslationChunk]:
-        """Aceita os blocos somente se reconstruirem a frase em ingles.
-
-        Se o modelo inventar ou reordenar palavras, descarta a analise e devolve
-        uma lista vazia — a traducao principal ainda fica disponivel ao usuario.
-        """
+        """Accepts blocks only if they reconstruct the English phrase."""
         if not items:
             return []
 
@@ -230,8 +207,8 @@ class GeminiPhraseTranslator(PhraseTranslator):
         expected = _collapse(sentence)
         if rebuilt != expected:
             logger.info(
-                "[gemini-translate] chunks descartados (nao reconstroem a frase) "
-                "| esperado=%r recebido=%r",
+                "[gemini-translate] chunks discarded (mismatched sentence) "
+                "| expected=%r received=%r",
                 expected,
                 rebuilt,
             )

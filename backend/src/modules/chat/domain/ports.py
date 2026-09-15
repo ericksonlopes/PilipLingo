@@ -1,7 +1,7 @@
-"""Portas (interfaces) do dominio chat.
+"""Ports (interfaces) for chat domain.
 
-O dominio declara contratos; a infraestrutura fornece adaptadores.
-Assinaturas em termos das entidades do dominio, nunca de ORM ou HTTP.
+The domain declares contracts; infrastructure provides adapters.
+Signatures in terms of domain entities, never ORM or HTTP.
 """
 
 from __future__ import annotations
@@ -19,21 +19,21 @@ from modules.chat.domain.entities import (
     TurnFeedback,
 )
 
-# ---------- porta de persistencia ----------
+# ---------- persistence port ----------
 
 
 class ConversationRepository(ABC):
-    """Persistencia de Conversations e ConversationTurns."""
+    """Persistence for Conversations and ConversationTurns."""
 
     @abstractmethod
     async def add_conversation(self, conversation: Conversation) -> Conversation:
-        """Persiste uma nova conversa."""
+        """Persists a new conversation."""
 
     @abstractmethod
     async def get_conversation(
         self, conversation_id: UUID, *, user_id: UUID
     ) -> Conversation | None:
-        """Busca conversa por id garantindo que pertence ao usuario."""
+        """Finds conversation by id ensuring it belongs to the user."""
 
     @abstractmethod
     async def list_conversations(
@@ -44,7 +44,7 @@ class ConversationRepository(ABC):
         offset: int,
         status: ConversationStatus | None = None,
     ) -> list[Conversation]:
-        """Lista conversas do usuario, ordenadas por created_at desc."""
+        """Lists user conversations, ordered by created_at desc."""
 
     @abstractmethod
     async def count_conversations(
@@ -53,71 +53,71 @@ class ConversationRepository(ABC):
         user_id: UUID,
         status: ConversationStatus | None = None,
     ) -> int:
-        """Total de conversas do usuario."""
+        """Total user conversations."""
 
     @abstractmethod
     async def update_conversation(self, conversation: Conversation) -> Conversation:
-        """Persiste mudancas de estado em uma conversa existente."""
+        """Persists state changes in an existing conversation."""
 
     @abstractmethod
     async def add_turn(self, turn: ConversationTurn) -> ConversationTurn:
-        """Persiste um novo turno."""
+        """Persists a new turn."""
 
     @abstractmethod
     async def list_turns(
         self, conversation_id: UUID, *, user_id: UUID
     ) -> list[ConversationTurn]:
-        """Lista todos os turnos da conversa em ordem crescente de turn_index."""
+        """Lists all turns of the conversation in ascending order of turn_index."""
 
     @abstractmethod
     async def count_turns(self, conversation_id: UUID) -> int:
-        """Conta turnos persistidos na conversa."""
+        """Counts persisted turns in the conversation."""
 
     @abstractmethod
     async def last_turns(
         self, conversation_id: UUID, *, limit: int
     ) -> list[ConversationTurn]:
-        """Retorna os ultimos N turnos em ordem cronologica crescente."""
+        """Returns the last N turns in ascending chronological order."""
 
 
 class TopicRepository(ABC):
-    """Leitura de topicos pre-definidos."""
+    """Read interface for predefined topics."""
 
     @abstractmethod
     async def list_topics(self, *, limit: int = 30) -> list[ChatTopic]:
-        """Retorna topicos ate o limite."""
+        """Returns topics up to limit."""
 
     @abstractmethod
     async def count_topics(self) -> int:
-        """Total de topicos."""
+        """Total topics."""
 
     @abstractmethod
     async def seed(self, topics: list[ChatTopic]) -> None:
-        """Insere topicos se a tabela estiver vazia."""
+        """Inserts topics if the table is empty."""
 
 
 class GoalRepository(ABC):
-    """Leitura de metas pre-definidas."""
+    """Read interface for predefined goals."""
 
     @abstractmethod
     async def list_goals(self, *, limit: int = 30) -> list[ChatGoal]:
-        """Retorna metas ate o limite."""
+        """Returns goals up to limit."""
 
     @abstractmethod
     async def count_goals(self) -> int:
-        """Total de metas."""
+        """Total goals."""
 
     @abstractmethod
     async def seed(self, goals: list[ChatGoal]) -> None:
-        """Insere metas se a tabela estiver vazia."""
+        """Inserts goals if the table is empty."""
 
 
-# ---------- porta de IA ----------
+# ---------- AI port ----------
 
 
 @dataclass(frozen=True, slots=True)
 class TurnContext:
-    """Contexto enviado ao AI_Tutor para gerar um turno."""
+    """Context sent to AI_Tutor to generate a turn."""
 
     user_message: str
     mode: str
@@ -127,13 +127,13 @@ class TurnContext:
     goals: list[str] = field(default_factory=list)
     goals_progress: list[bool] = field(default_factory=list)
     history: list[tuple[str, str]] = field(default_factory=list)
-    # Quando True, solicita avaliacao de meta atingida na mesma chamada.
+    # When True, requests evaluation of goal achievement in the same call.
     evaluate_goal: bool = False
 
 
 @dataclass(frozen=True, slots=True)
 class TurnResult:
-    """Resultado retornado pelo AI_Tutor para um turno."""
+    """Result returned by AI_Tutor for a turn."""
 
     ai_reply: str
     feedback: TurnFeedback | None
@@ -142,11 +142,11 @@ class TurnResult:
 
 
 class ChatAIPort(ABC):
-    """Porta de geracao de respostas e feedback pedagogico.
+    """Port for generating responses and pedagogical feedback.
 
-    O dominio nao sabe que por tras existe um LLM.
+    The domain does not know that an LLM exists behind this.
     """
 
     @abstractmethod
     async def generate_turn(self, context: TurnContext) -> TurnResult:
-        """Gera resposta + feedback (e avaliacao de meta, se solicitado)."""
+        """Generates response + feedback (and goal evaluation, if requested)."""

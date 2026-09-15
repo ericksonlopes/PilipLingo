@@ -1,8 +1,5 @@
 /**
- * TranslateChatView — interface de chat para tradução contínua.
- *
- * Lista de turnos com scroll automático, input multilinha,
- * Enter para enviar (Shift+Enter = nova linha), botão limpar histórico.
+ * TranslateChatView — Chat interface for continuous translation.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -23,7 +20,6 @@ export default function TranslateChatView({
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Scroll para o final sempre que chegam novos turnos
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -50,7 +46,6 @@ export default function TranslateChatView({
 
   return (
     <div className="tc-view">
-      {/* Header com ação de limpar */}
       <div className="tc-view__header">
         <p className="tc-view__hint">
           Digite em inglês ou português — cada mensagem gera uma tradução com análise.
@@ -67,7 +62,6 @@ export default function TranslateChatView({
         )}
       </div>
 
-      {/* Lista de turnos */}
       <div
         ref={listRef}
         className="tc-view__messages"
@@ -84,7 +78,6 @@ export default function TranslateChatView({
         ))}
       </div>
 
-      {/* Input */}
       <div className="tc-view__input-area">
         <textarea
           ref={inputRef}
@@ -108,7 +101,6 @@ export default function TranslateChatView({
           disabled={!canSend}
           aria-label="Traduzir"
         >
-          {/* Ícone de envio */}
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path
               d="M3 12l18-9-9 18-2-7-7-2z"

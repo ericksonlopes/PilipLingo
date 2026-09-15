@@ -1,4 +1,4 @@
-"""Conversao entre modelo ORM e entidade de dominio da fatia users."""
+"""Conversion between ORM model and domain entity for users slice."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from modules.users.infrastructure.models import UserModel
 
 
 def _as_utc(value: datetime) -> datetime:
-    """SQLite nao guarda timezone: reanexa UTC quando vem naive."""
+    """SQLite does not store timezone: re-attach UTC when naive."""
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 

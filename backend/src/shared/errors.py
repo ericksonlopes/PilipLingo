@@ -1,10 +1,10 @@
-"""Erros de dominio compartilhados. Independentes de HTTP e de framework."""
+"""Shared domain errors. Independent of HTTP and framework."""
 
 from __future__ import annotations
 
 
 class DomainError(Exception):
-    """Base de todos os erros de regra de negocio."""
+    """Base for all business rule errors."""
 
     code = "domain_error"
 
@@ -14,30 +14,30 @@ class DomainError(Exception):
 
 
 class ValidationError(DomainError):
-    """Dado de entrada invalido segundo as regras do dominio."""
+    """Input data invalid according to domain rules."""
 
     code = "validation_error"
 
 
 class NotFoundError(DomainError):
-    """Recurso inexistente."""
+    """Resource does not exist."""
 
     code = "not_found"
 
 
 class ConflictError(DomainError):
-    """Operacao viola uma invariante de unicidade/estado."""
+    """Operation violates a uniqueness/state invariant."""
 
     code = "conflict"
 
 
 class UnavailableError(DomainError):
-    """Dependencia externa indisponivel ou nao configurada."""
+    """External dependency unavailable or unconfigured."""
 
     code = "unavailable"
 
 
 class UnauthorizedError(DomainError):
-    """Credenciais ausentes ou invalidas."""
+    """Missing or invalid credentials."""
 
     code = "unauthorized"

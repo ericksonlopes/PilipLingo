@@ -1,7 +1,7 @@
-"""Traducao de erros de dominio para respostas HTTP.
+"""Translation of domain errors into HTTP responses.
 
-Mantem o dominio livre de qualquer conhecimento sobre HTTP: apenas esta camada
-sabe qual status code corresponde a cada erro.
+Keeps the domain free of any HTTP knowledge: only this layer
+knows which status code corresponds to each error.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from shared.errors import (
     ValidationError,
 )
 
-# Starlette renomeou 422 (Unprocessable Entity -> Unprocessable Content).
+# Starlette renamed 422 (Unprocessable Entity -> Unprocessable Content).
 HTTP_422 = getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", 422)
 
 _STATUS_BY_ERROR: dict[type[DomainError], int] = {
@@ -38,7 +38,7 @@ def _status_for(error: DomainError) -> int:
 
 
 async def domain_error_handler(_request: Request, exc: Exception) -> JSONResponse:
-    if not isinstance(exc, DomainError):  # pragma: no cover - contrato do handler
+    if not isinstance(exc, DomainError):  # pragma: no cover - handler contract
         raise exc
     return JSONResponse(
         status_code=_status_for(exc),

@@ -1,8 +1,8 @@
-"""Nivel de proficiencia (CEFR).
+"""Proficiency level (CEFR).
 
-Fica no shared kernel porque e um conceito transversal do produto: classifica os
-termos do vocabulario, calibra as frases geradas pela IA e define o onboarding.
-Qualquer fatia nova (progresso, licoes) tende a precisar dele tambem.
+Located in the shared kernel because it is a cross-cutting product concept: classifies
+vocabulary terms, calibrates AI-generated sentences, and defines onboarding.
+Any new slice (progress, lessons) is likely to need it as well.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from enum import StrEnum
 
 
 class ProficiencyLevel(StrEnum):
-    """Nivel CEFR aproximado."""
+    """Approximate CEFR level."""
 
     A1 = "A1"
     A2 = "A2"
@@ -26,7 +26,7 @@ class ProficiencyLevel(StrEnum):
 
     @property
     def guidance(self) -> str:
-        """Descricao usada para calibrar a geracao de frases."""
+        """Description used to calibrate sentence generation."""
         return _GUIDANCE[self]
 
 

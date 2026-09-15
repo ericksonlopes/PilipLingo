@@ -1,4 +1,4 @@
-"""Caso de uso: traduzir uma frase com analise estrutural (blocos + resumo de montagem)."""
+"""Use case: translate a phrase with structural analysis (blocks + assembly summary)."""
 
 from __future__ import annotations
 
@@ -16,15 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 class TranslatePhrase:
-    """Recebe uma frase em qualquer idioma e devolve traducao + analise de blocos."""
+    """Receives a phrase in any language and returns translation + block analysis."""
 
     def __init__(self, translator: PhraseTranslator) -> None:
         self._translator = translator
 
     async def execute(self, command: TranslationCommand) -> TranslationResult:
-        logger.info("[translate] solicitando traducao | text=%r", command.text[:80])
+        logger.info("[translate] requesting translation | text=%r", command.text[:80])
         raw = await self._translator.translate(command.text)
-        logger.info("[translate] resultado recebido | chunks=%d", len(raw.chunks))
+        logger.info("[translate] result received | chunks=%d", len(raw.chunks))
         return TranslationResult(
             original=raw.original,
             translation=raw.translation,

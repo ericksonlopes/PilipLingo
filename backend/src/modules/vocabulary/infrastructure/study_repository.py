@@ -1,4 +1,4 @@
-"""Adaptador SQLAlchemy da porta StudyCardRepository."""
+"""SQLAlchemy adapter for StudyCardRepository port."""
 
 from __future__ import annotations
 
@@ -20,15 +20,13 @@ from shared.domain.proficiency import ProficiencyLevel
 
 
 class SqlAlchemyStudyCardRepository(StudyCardRepository):
-    """Persiste cards de estudo via SQLAlchemy async.
+    """Persists study cards via async SQLAlchemy.
 
-    Como no repositorio de vocabulario, aqui so ha `flush()`: o commit e da
-    dependencia `get_session`, que fecha a transacao no fim do request.
+    Only flush() is used here; commit is managed by get_session dependency.
     """
 
     def __init__(self, session: AsyncSession, *, user_id: UUID) -> None:
         self._session = session
-        # Escopo do dono: cada aluno so ve e agenda os proprios cards.
         self._user_id = user_id
 
     async def add_many(self, cards: list[StudyCard]) -> list[StudyCard]:
@@ -48,7 +46,7 @@ class SqlAlchemyStudyCardRepository(StudyCardRepository):
     async def update(self, card: StudyCard) -> StudyCard:
         model = await self._session.get(StudyCardModel, card.id)
         if model is None or model.user_id != self._user_id:
-            raise LookupError(f"StudyCardModel {card.id} nao encontrado para update.")
+            raise LookupError(f"StudyCardModel {card.id} not found for update.")
         apply_to_study_card_model(model, card)
         await self._session.flush()
         return study_card_to_domain(model)
@@ -173,12 +171,6 @@ class SqlAlchemyStudyCardRepository(StudyCardRepository):
         limit: int = 50,
         offset: int = 0,
     ) -> list[tuple[str, str]]:
-        """Palavras vistas pelo usuario, mais recentes primeiro.
-
-        Le da tabela `seen_words`, que guarda VARIAS palavras por frase (todo o
-        vocabulario de cada sessao), em vez do unico focus_term por card. Assim o
-        historico "Palavras" mostra cada palavra praticada, nao uma por frase.
-        """
         stmt = (
             select(SeenWordModel.word, SeenWordModel.translation)
             .where(SeenWordModel.user_id == self._user_id)

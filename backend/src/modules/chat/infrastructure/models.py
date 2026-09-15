@@ -1,4 +1,4 @@
-"""Modelos ORM da fatia chat. Detalhe de infraestrutura, nunca vaza para o dominio."""
+"""ORM models for chat slice. Infrastructure detail, never leaks to domain."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from shared.database import Base
 
 
 class ConversationModel(Base):
-    """Sessao de conversa entre aluno e IA."""
+    """Conversation session between student and AI."""
 
     __tablename__ = "conversations"
 
@@ -47,7 +47,7 @@ class ConversationModel(Base):
 
 
 class ConversationTurnModel(Base):
-    """Um par (mensagem_aluno, resposta_ia) dentro de uma Conversation."""
+    """A pair of (student_message, ai_reply) inside a Conversation."""
 
     __tablename__ = "conversation_turns"
 
@@ -72,7 +72,7 @@ class ConversationTurnModel(Base):
 
 
 class ChatTopicModel(Base):
-    """Topico pre-definido de conversa."""
+    """Predefined conversation topic."""
 
     __tablename__ = "chat_topics"
 
@@ -86,7 +86,7 @@ class ChatTopicModel(Base):
 
 
 class ChatGoalModel(Base):
-    """Meta comunicativa pre-definida."""
+    """Predefined communicative goal."""
 
     __tablename__ = "chat_goals"
 

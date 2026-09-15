@@ -1,4 +1,4 @@
-"""Adaptador SQLAlchemy da porta UserRepository."""
+"""SQLAlchemy adapter for UserRepository port."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from modules.users.infrastructure.models import UserModel
 
 
 class SqlAlchemyUserRepository(UserRepository):
-    """Persiste usuarios via SQLAlchemy async.
+    """Persists users via async SQLAlchemy.
 
-    O commit e responsabilidade da unidade de trabalho (dependencia get_session),
-    entao aqui usamos apenas flush.
+    Commit is the responsibility of the unit of work (get_session dependency),
+    so here we only use flush.
     """
 
     def __init__(self, session: AsyncSession) -> None:

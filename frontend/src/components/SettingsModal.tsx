@@ -93,7 +93,7 @@ export default function SettingsModal({
           </button>
         </div>
 
-        {/* Card do perfil do usuário */}
+        {/* User profile card */}
         <div className="settings-profile-card">
           <div className="settings-profile-avatar" aria-hidden="true">
             {initial}
@@ -107,7 +107,7 @@ export default function SettingsModal({
           </div>
         </div>
 
-        {/* Opções de configuração */}
+        {/* Configuration options list */}
         <div className="settings-options-list">
           <button
             type="button"

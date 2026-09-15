@@ -1,4 +1,4 @@
-"""Construcao do chat model Gemini a partir das Settings."""
+"""Construction of Gemini chat model from Settings."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from shared.config import Settings
 def _build(
     model: str, api_key: str, temperature: float, timeout: float, retries: int
 ) -> BaseChatModel:
-    """Cacheado por configuracao: o client reaproveita conexoes entre requests."""
+    """Cached by configuration: client reuses connections across requests."""
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=api_key,
@@ -26,7 +26,7 @@ def _build(
 
 
 def create_chat_model(settings: Settings) -> BaseChatModel:
-    """Falha explicitamente (503) quando a chave nao esta configurada."""
+    """Fails explicitly (503) when API key is not configured."""
     if not settings.is_ai_configured:
         raise SentenceGeneratorNotConfigured
     assert settings.google_api_key is not None

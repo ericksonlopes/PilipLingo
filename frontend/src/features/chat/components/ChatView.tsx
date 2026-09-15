@@ -1,6 +1,5 @@
 /**
- * Vista principal de conversa ativa.
- * Lista de turnos com scroll, input de mensagem, typing indicator e controles.
+ * Main active conversation view.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -36,7 +35,6 @@ export default function ChatView({
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Mantém o scroll na última mensagem
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -52,7 +50,6 @@ export default function ChatView({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    // Enviar com Enter (sem Shift) em desktop
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -62,7 +59,6 @@ export default function ChatView({
   const aiDisabled = chatStatus !== null && !chatStatus.enabled;
   const canSend = text.trim().length > 0 && !isTyping && !aiDisabled;
 
-  // Os "pending" são o último turno quando isPending = sem ai_reply
   const pendingTurnIndex = isTyping ? turns.length - 1 : -1;
 
   const goals = conversation.goals || [];
@@ -84,7 +80,6 @@ export default function ChatView({
 
   return (
     <div className="chat-view">
-      {/* Cabeçalho com informações da conversa */}
       <div className="chat-view__header">
         <div className="chat-view__meta">
           <div className="chat-view__meta-top">
@@ -110,7 +105,6 @@ export default function ChatView({
         </button>
       </div>
 
-      {/* Painel de metas em tempo real (modo GOAL) */}
       {goals.length > 0 && (
         <div className="chat-goals-bar" aria-label="Progresso das metas">
           <div className="chat-goals-bar__header">
@@ -143,21 +137,18 @@ export default function ChatView({
         </div>
       )}
 
-      {/* Alerta de IA desabilitada */}
       {aiDisabled && (
         <div role="alert" className="alert alert--error chat-view__ai-alert">
           Serviço de IA indisponível. Não é possível enviar mensagens agora.
         </div>
       )}
 
-      {/* Alerta de erro de envio */}
       {error && (
         <div role="alert" className="alert alert--error">
           {error}
         </div>
       )}
 
-      {/* Área de mensagens */}
       <div ref={listRef} className="chat-view__messages">
         {turns.length === 0 && !isTyping && (
           <div className="chat-view__empty">
@@ -174,7 +165,6 @@ export default function ChatView({
         {isTyping && <TypingIndicator />}
       </div>
 
-      {/* Input de mensagem */}
       <div className="chat-view__input-area">
         <textarea
           ref={inputRef}
@@ -212,7 +202,6 @@ export default function ChatView({
         </button>
       </div>
 
-      {/* Modal / Card comemorativo ao atingir todas as metas */}
       {showCompletionModal && (
         <div className="chat-goals-modal-overlay" role="dialog" aria-modal="true">
           <div className="chat-goals-modal">

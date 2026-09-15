@@ -1,14 +1,8 @@
 /**
- * Fala e escuta nativas do navegador.
+ * Native Web Speech API wrapper for speech synthesis and recognition.
  *
- * A reproducao dos exercicios sai do SpeechSynthesis e a validacao da pratica de
- * fala usa a Speech Recognition API. Nenhum dos dois vai para o backend: nao ha
- * custo de TTS nem upload de audio do usuario.
- *
- * A Speech Recognition nao faz parte da lib DOM do TypeScript e o projeto nao usa
- * pacote de tipos extra, entao o contrato minimo que precisamos esta declarado
- * aqui como interface local (nao global, para nao colidir se a lib DOM passar a
- * declarar isso numa versao futura).
+ * Speech synthesis renders exercise audio via SpeechSynthesis, while speaking
+ * practice uses SpeechRecognition API. Neither calls the backend (zero TTS costs).
  */
 
 interface RecognitionAlternative {
@@ -52,7 +46,7 @@ const SPEECH_LANG = "en-US";
 export const ENGLISH_VOICE_STORAGE_KEY = "piliplingo.englishVoiceUri";
 const ENGLISH_LANGUAGE_PATTERN = /^en(?:[-_]|$)/i;
 
-/** Retorna as vozes em inglês instaladas no navegador, em ordem estável. */
+/** Returns English voices installed in browser in stable order. */
 export function getEnglishVoices(): SpeechSynthesisVoice[] {
   if (!isSpeechSupported()) return [];
 
@@ -64,7 +58,7 @@ export function getEnglishVoices(): SpeechSynthesisVoice[] {
     );
 }
 
-/** A escolha é local porque as vozes disponíveis variam de aparelho para aparelho. */
+/** Preferred English voice URI stored in browser localStorage. */
 export function getPreferredEnglishVoiceUri(): string | null {
   if (typeof window === "undefined") return null;
 
@@ -85,7 +79,7 @@ export function setPreferredEnglishVoiceUri(voiceUri: string | null): void {
       window.localStorage.setItem(ENGLISH_VOICE_STORAGE_KEY, voiceUri);
     }
   } catch {
-    // A síntese continua com a voz padrão quando o armazenamento é bloqueado.
+    // Synthesis falls back to default voice if storage is blocked.
   }
 }
 
@@ -107,7 +101,6 @@ function recognizerConstructor(): RecognizerConstructor | null {
   if (typeof window === "undefined") {
     return null;
   }
-  // Chrome/Edge/Safari expoem com prefixo; o nome sem prefixo e o padrao.
   const candidate = window as unknown as {
     SpeechRecognition?: RecognizerConstructor;
     webkitSpeechRecognition?: RecognizerConstructor;
@@ -120,18 +113,13 @@ export function isRecognitionSupported(): boolean {
 }
 
 /**
- * O microfone exige contexto seguro: HTTPS ou localhost.
- *
- * Isso pega justamente o caminho recomendado para testar no celular
- * (`http://SEU_IP:5173`): a API existe no navegador, o botao aparece, mas o
- * browser bloqueia a captura sem avisar em tela. Detectar aqui permite explicar
- * o motivo em vez de deixar o aluno achando que a propria voz nao serve.
+ * Microphone requires a secure context (HTTPS or localhost).
  */
 export function isMicAllowedHere(): boolean {
   return typeof window !== "undefined" && window.isSecureContext;
 }
 
-/** Cria um reconhecedor de fala em ingles, ou null quando o navegador nao suporta. */
+/** Creates English speech recognizer, or null if unsupported. */
 export function createRecognizer(): SpeechRecognizer | null {
   const Recognizer = recognizerConstructor();
   if (Recognizer === null) {
@@ -145,7 +133,7 @@ export function createRecognizer(): SpeechRecognizer | null {
   return recognizer;
 }
 
-/** Todas as alternativas do primeiro resultado, da mais provavel para a menos. */
+/** Transcripts from recognition event in descending confidence order. */
 export function transcriptsOf(event: RecognitionEvent): string[] {
   const result = event.results[0];
   if (result === undefined) {
@@ -222,10 +210,8 @@ function settleSpeech(speech: ActiveSpeech, result: SpeechResult, notifyIdle = t
 }
 
 /**
- * Fala um texto em qualquer idioma e informa como a reproducao terminou.
- * Substitui a fala ativa, em vez de enfileirar.
- *
- * `lang` segue o formato BCP-47: "en-US", "pt-BR", etc.
+ * Speaks text in requested language and returns result status.
+ * Replaces active utterance instead of queuing.
  */
 export function speakLang(text: string, lang: string, rate = 1): Promise<SpeechResult> {
   if (!isSpeechSupported() || !text.trim()) {
@@ -264,8 +250,7 @@ export function speakLang(text: string, lang: string, rate = 1): Promise<SpeechR
 }
 
 /**
- * Fala a frase em ingles e informa como a reproducao terminou. Uma nova chamada
- * substitui a anterior, em vez de enfileirar as duas.
+ * Speaks English text and returns completion status.
  */
 export function speak(text: string, rate = 1): Promise<SpeechResult> {
   if (!isSpeechSupported() || !text.trim()) {
@@ -275,8 +260,6 @@ export function speak(text: string, rate = 1): Promise<SpeechResult> {
   pauseIdleWaiters();
   if (activeSpeech !== null) {
     const replaced = activeSpeech;
-    // Desliga os handlers antes de cancelar: alguns motores disparam onerror de
-    // forma sincrona no cancel(), o que nao pode sinalizar um falso periodo ocioso.
     settleSpeech(replaced, "cancelled", false);
     window.speechSynthesis.cancel();
   } else {
@@ -294,8 +277,6 @@ export function speak(text: string, rate = 1): Promise<SpeechResult> {
       resolve,
       watchdog: 0,
     };
-    // Alguns navegadores nao disparam onend depois de falhas do motor. O teto
-    // impede que uma sessao fique esperando para sempre.
     speech.watchdog = window.setTimeout(() => {
       window.speechSynthesis.cancel();
       settleSpeech(speech, "error");
@@ -313,9 +294,7 @@ export function speak(text: string, rate = 1): Promise<SpeechResult> {
 }
 
 /**
- * Espera a sintese ficar ociosa pelo periodo pedido. Se outra fala comecar nesse
- * intervalo, a contagem reinicia; abortar o signal ou chamar stopSpeaking libera
- * a espera sem rejeicao nem deadlock.
+ * Waits for speech synthesis to remain idle for given duration.
  */
 export function waitForSpeechIdle(idleForMs = 0, signal?: AbortSignal): Promise<void> {
   if (signal?.aborted) return Promise.resolve();

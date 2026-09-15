@@ -1,4 +1,4 @@
-"""Conversao entre modelo ORM e entidade de dominio."""
+"""Conversion between ORM models and domain entities for vocabulary slice."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from modules.vocabulary.infrastructure.models import StudyCardModel, VocabularyE
 
 
 def _as_utc(value: datetime) -> datetime:
-    """SQLite nao guarda timezone: reanexa UTC quando vem naive."""
+    """SQLite does not store timezone: re-attaches UTC when naive."""
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
@@ -68,12 +68,7 @@ def chunks_to_json(chunks: list[SentenceChunk]) -> list[dict[str, Any]]:
 
 
 def chunks_to_domain(raw: object) -> list[SentenceChunk]:
-    """Le a coluna JSON tolerando linha antiga ou payload malformado.
-
-    A analise estrutural e conteudo gerado por IA: se um registro estiver
-    incompleto, o card continua estudavel sem o "Entender Estrutura", em vez de
-    derrubar a sessao inteira.
-    """
+    """Reads JSON column tolerating legacy rows or malformed payloads."""
     if not isinstance(raw, list):
         return []
 
@@ -95,7 +90,7 @@ def vocabulary_to_json(vocabulary: list[SentenceVocabularyItem]) -> list[dict[st
 
 
 def vocabulary_to_domain(raw: object) -> list[SentenceVocabularyItem]:
-    """Le a coluna JSON de vocabulario tolerando linha antiga ou payload malformado."""
+    """Reads JSON vocabulary column tolerating legacy rows or malformed payloads."""
     if not isinstance(raw, list):
         return []
 
@@ -158,7 +153,7 @@ def study_card_to_model(card: StudyCard, *, user_id: UUID) -> StudyCardModel:
 
 
 def apply_to_study_card_model(model: StudyCardModel, card: StudyCard) -> StudyCardModel:
-    """Só o estado de agendamento muda depois da criacao; o conteudo e imutavel."""
+    """Only scheduling state changes after creation; content is immutable."""
     model.repetitions = card.repetitions
     model.lapses = card.lapses
     model.ease_factor = card.ease_factor

@@ -1,11 +1,10 @@
-"""Dominio de estudo: card com agendamento SRS e montagem da sessao.
+"""Study domain: card with SRS scheduling and session assembly.
 
-Por padrao, uma sessao sorteia formas de interacao diferentes para cobrar o mesmo
-conteudo por escrita, escuta, ordem das palavras, reconhecimento e fala. Quando o
-aluno seleciona formatos, cada card usa apenas um dos modos escolhidos.
+By default, a session samples different interaction modes for writing, listening,
+word ordering, recognition, and speaking practice.
 
-Sem dependencia de framework ou ORM: `random` e stdlib e entra por parametro
-(`random.Random`) para a montagem ser reproduzivel em teste.
+No framework or ORM dependencies. `random` is stdlib and passed as parameter
+(`random.Random`) for reproducibility in tests.
 """
 
 from __future__ import annotations
@@ -46,7 +45,7 @@ __all__ = [
 
 
 class ExerciseMode(StrEnum):
-    """As seis formas de cobrar o mesmo card."""
+    """The six ways to test the same card."""
 
     TYPING_CLOZE = "TYPING_CLOZE"
     AUDIO_DICTATION = "AUDIO_DICTATION"
@@ -57,30 +56,30 @@ class ExerciseMode(StrEnum):
 
     @property
     def instruction(self) -> str:
-        """Enunciado mostrado ao aluno."""
+        """Prompt instruction shown to the student."""
         return _INSTRUCTIONS[self]
 
     @property
     def needs_audio(self) -> bool:
-        """O app precisa falar a frase antes de o aluno responder."""
+        """App needs to play sentence audio before student responds."""
         return self in {ExerciseMode.AUDIO_DICTATION, ExerciseMode.SPEAKING_PRACTICE}
 
     @property
     def is_group(self) -> bool:
-        """Consome varios cards de uma vez, em vez de um."""
+        """Consumes multiple cards at once instead of one."""
         return self is ExerciseMode.VOCAB_MATCHING
 
 
 _INSTRUCTIONS: dict[ExerciseMode, str] = {
     ExerciseMode.TYPING_CLOZE: "Complete a lacuna com a palavra que falta.",
-    ExerciseMode.AUDIO_DICTATION: "Ouca e monte a frase tocando nos blocos.",
-    ExerciseMode.BLOCK_TRANSLATION: "Traduza para o ingles ordenando os blocos.",
-    ExerciseMode.VOCAB_MATCHING: "Ligue cada frase em ingles a sua traducao.",
-    ExerciseMode.SPEAKING_PRACTICE: "Ouca e repita a frase em voz alta.",
-    ExerciseMode.SENTENCE_BUILDER: "Escreva uma frase em ingles usando a palavra indicada.",
+    ExerciseMode.AUDIO_DICTATION: "Ouça e monte a frase tocando nos blocos.",
+    ExerciseMode.BLOCK_TRANSLATION: "Traduza para o inglês ordenando os blocos.",
+    ExerciseMode.VOCAB_MATCHING: "Ligue cada frase em inglês à sua tradução.",
+    ExerciseMode.SPEAKING_PRACTICE: "Ouça e repita a frase em voz alta.",
+    ExerciseMode.SENTENCE_BUILDER: "Escreva uma frase em inglês usando a palavra indicada.",
 }
 
-# Modos que consomem um card so. VOCAB_MATCHING fica fora porque precisa de grupo.
+# Single card modes. VOCAB_MATCHING is excluded because it requires a group.
 _SINGLE_CARD_MODES: tuple[ExerciseMode, ...] = (
     ExerciseMode.TYPING_CLOZE,
     ExerciseMode.AUDIO_DICTATION,
@@ -92,7 +91,7 @@ _SINGLE_CARD_MODES: tuple[ExerciseMode, ...] = (
 MATCHING_MIN_CARDS = 4
 MATCHING_MAX_CARDS = 5
 
-# Parametros do agendamento (SM-2 simplificado).
+# Scheduling parameters (simplified SM-2).
 DEFAULT_EASE_FACTOR = 2.5
 MIN_EASE_FACTOR = 1.3
 MAX_EASE_FACTOR = 2.8
@@ -100,8 +99,7 @@ _FIRST_INTERVAL_DAYS = 1
 _SECOND_INTERVAL_DAYS = 3
 _MAX_INTERVAL_DAYS = 365
 
-# O valor em ingles vai ao gerador; o rotulo em portugues vai ao menu do app.
-# STUDY_THEMES continua sendo o catalogo publico usado pelo sorteio.
+# English key goes to generator; Portuguese label goes to UI.
 STUDY_THEME_LABELS: dict[str, str] = {
     "morning routine": "Rotina da manhã",
     "job interview": "Entrevista de emprego",
@@ -138,7 +136,7 @@ STUDY_THEMES: tuple[str, ...] = tuple(STUDY_THEME_LABELS)
 
 
 class ReviewGrade(StrEnum):
-    """Como o aluno se saiu no exercicio, no vocabulario de app de flashcard."""
+    """Student performance rating for SRS card review."""
 
     AGAIN = "AGAIN"
     HARD = "HARD"
@@ -151,7 +149,7 @@ class ReviewGrade(StrEnum):
 
 
 def random_theme(rng: random.Random | None = None) -> str:
-    """Sorteia um tema do catalogo."""
+    """Selects a random theme from catalog."""
     return (rng or random).choice(STUDY_THEMES)
 
 
@@ -162,25 +160,20 @@ def _clamp_ease(value: float) -> float:
 def _clean(value: str, *, field_name: str, max_length: int) -> str:
     text = (value or "").strip()
     if not text:
-        raise ValidationError(f"'{field_name}' nao pode ser vazio.")
+        raise ValidationError(f"'{field_name}' cannot be empty.")
     if len(text) > max_length:
-        raise ValidationError(f"'{field_name}' excede {max_length} caracteres.")
+        raise ValidationError(f"'{field_name}' exceeds {max_length} characters.")
     return text
 
 
-# Palavra "cheia": serve de resposta de lacuna. Evita artigos e preposicoes curtas.
-_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'’-]*")
+_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'’\-]*")
 _MIN_CLOZE_WORD_LENGTH = 4
 CLOZE_PLACEHOLDER = "____"
 
 
 @dataclass(slots=True)
 class StudyCard:
-    """Uma frase em estudo, com a analise estrutural e o estado do agendamento.
-
-    O card e a unidade de revisao: a mesma frase volta em modos diferentes ao
-    longo do tempo, e o resultado da revisao move `due_at` para frente.
-    """
+    """A sentence under study, with structural analysis and SRS state."""
 
     id: UUID
     sentence: str
@@ -198,8 +191,6 @@ class StudyCard:
     created_at: datetime
     updated_at: datetime
     reviewed_at: datetime | None = None
-    # Traducao do termo-alvo em portugues (ex.: "wake up" -> "acordar").
-    # None em cards antigos gerados antes desta feature.
     focus_term_translation: str | None = None
 
     @classmethod
@@ -216,7 +207,7 @@ class StudyCard:
         vocabulary: list[SentenceVocabularyItem] | None = None,
         now: datetime | None = None,
     ) -> StudyCard:
-        """Fabrica que valida a frase e deixa o card vencido para hoje."""
+        """Factory validating sentence and setting card due immediately."""
         moment = now or datetime.now(UTC)
         clean_sentence = _clean(sentence, field_name="sentence", max_length=MAX_EXAMPLE_LENGTH)
         clean_ftt = (
@@ -240,7 +231,6 @@ class StudyCard:
             lapses=0,
             ease_factor=DEFAULT_EASE_FACTOR,
             interval_days=0,
-            # Card novo entra vencido: e para estudar agora, nao amanha.
             due_at=moment,
             created_at=moment,
             updated_at=moment,
@@ -254,7 +244,7 @@ class StudyCard:
         theme: str,
         now: datetime | None = None,
     ) -> StudyCard:
-        """Converte o resultado da IA em card persistivel."""
+        """Converts AI generation result into a persistable card."""
         return cls.create(
             sentence=sentence.text,
             translation=sentence.translation,
@@ -268,11 +258,7 @@ class StudyCard:
         )
 
     def register_review(self, grade: ReviewGrade, *, now: datetime | None = None) -> None:
-        """Aplica a nota da revisao e reagenda o card (SM-2 simplificado).
-
-        `AGAIN` zera o progresso e devolve o card para a sessao atual
-        (`interval_days = 0`), em vez de empurrar para o dia seguinte.
-        """
+        """Applies review grade and reschedules card (simplified SM-2)."""
         moment = now or datetime.now(UTC)
 
         if grade is ReviewGrade.AGAIN:
@@ -312,28 +298,24 @@ class StudyCard:
 
     @property
     def words(self) -> list[str]:
-        """Frase quebrada em palavras, preservando a pontuacao colada."""
+        """Sentence split into words, preserving attached punctuation."""
         return self.sentence.split()
 
     @property
     def block_texts(self) -> list[str]:
-        """Blocos para montar a frase: usa a analise estrutural quando existe.
-
-        Ordenar chunks ensina a estrutura ("[I've been] [looking forward to]
-        [this moment]"); sem chunks, cai para palavras soltas.
-        """
+        """Blocks to assemble sentence: uses structural analysis when present."""
         if len(self.chunks) >= 2:
             return [chunk.text for chunk in self.chunks]
         return self.words
 
     def cloze(self) -> tuple[str, str]:
-        """Devolve (frase com a lacuna, resposta esperada)."""
+        """Returns (sentence with placeholder, expected answer)."""
         answer = self.focus_term
         match = self._find_term(answer)
         if match is None:
             answer = self._fallback_cloze_word()
             match = self._find_term(answer)
-        if match is None:  # pragma: no cover - frase sem palavra alfabetica
+        if match is None:
             return self.sentence, answer
 
         start, end = match
@@ -347,7 +329,6 @@ class StudyCard:
         return (found.start(), found.end()) if found else None
 
     def _fallback_cloze_word(self) -> str:
-        """Sem o termo na frase, esconde a palavra mais "cheia" disponivel."""
         candidates: list[str] = _WORD_RE.findall(self.sentence)
         if not candidates:
             return self.focus_term
@@ -359,16 +340,15 @@ class StudyCard:
         cleaned = (focus_term or "").strip()
         if cleaned:
             return cleaned[:MAX_TERM_LENGTH]
-        # A IA nem sempre devolve focus_term: escolhe a palavra mais longa da frase.
         candidates: list[str] = _WORD_RE.findall(sentence)
         if not candidates:
-            raise ValidationError("A frase precisa ter ao menos uma palavra.")
+            raise ValidationError("Sentence must contain at least one word.")
         return max(candidates, key=len)
 
 
 @dataclass(frozen=True, slots=True)
 class StudyExercise:
-    """Um card renderizado em um dos cinco modos, pronto para o app desenhar."""
+    """A card rendered in one of five modes, ready for UI display."""
 
     mode: ExerciseMode
     card: StudyCard
@@ -380,15 +360,11 @@ class StudyExercise:
 
 @dataclass(frozen=True, slots=True)
 class StudySession:
-    """A sessao do dia: exercicios ja sorteados, na ordem de execucao."""
+    """Daily study session: sampled exercises in execution order."""
 
     level: ProficiencyLevel
     exercises: list[StudyExercise]
-    # Quantos cards a IA acabou de criar para fechar a sessao.
     generated_count: int = 0
-    # Quantos cards estavam realmente vencidos. O resto e estudo adiantado, que so
-    # entra quando faltou conteudo: sem esse numero o app nao conseguiria dizer se
-    # o aluno esta em divida com a revisao ou apenas praticando a mais.
     due_count: int = 0
     themes: list[str] = field(default_factory=list)
 
@@ -408,7 +384,7 @@ def build_exercise(
     rng: random.Random,
     group: list[StudyCard] | None = None,
 ) -> StudyExercise:
-    """Traduz um card para a interacao pedida (funcao pura, sem I/O)."""
+    """Translates card into requested interaction mode (pure function, no I/O)."""
     if mode is ExerciseMode.TYPING_CLOZE:
         prompt, answer = card.cloze()
         return StudyExercise(mode=mode, card=card, prompt=prompt, answer=answer)
@@ -417,7 +393,6 @@ def build_exercise(
         return StudyExercise(
             mode=mode,
             card=card,
-            # O prompt fica vazio de proposito: quem da a pista e o audio.
             prompt="",
             answer=card.sentence,
             blocks=_shuffled(card.words, rng),
@@ -457,11 +432,11 @@ def assemble_session(
     generated_count: int = 0,
     due_count: int = 0,
 ) -> StudySession:
-    """Monta a sessao legada ou alterna apenas entre os modos selecionados."""
+    """Assembles legacy session or alternates among selected modes."""
     if modes == ():
-        raise ValidationError("Selecione pelo menos um modo de estudo.")
+        raise ValidationError("Select at least one study mode.")
     if modes is not None and any(mode.is_group for mode in modes):
-        raise ValidationError("VOCAB_MATCHING nao pode ser selecionado isoladamente.")
+        raise ValidationError("VOCAB_MATCHING cannot be selected alone.")
 
     generator = rng or random.Random()
     deck = list(cards)
@@ -479,10 +454,8 @@ def assemble_session(
             matching = build_exercise(
                 group[0], ExerciseMode.VOCAB_MATCHING, rng=generator, group=group
             )
-            # Nunca na primeira posicao: a sessao comeca por um exercicio de um card.
             exercises.insert(generator.randrange(1, len(exercises) + 1), matching)
     else:
-        # dict preserva a ordem recebida e remove repeticoes previsivelmente.
         selected_modes = tuple(dict.fromkeys(modes))
         exercises = [
             build_exercise(card, generator.choice(selected_modes), rng=generator) for card in deck
@@ -504,7 +477,6 @@ def assemble_session(
 def _shuffled(values: list[str], rng: random.Random) -> list[str]:
     shuffled = list(values)
     rng.shuffle(shuffled)
-    # Uma unica ordem possivel deixaria o exercicio resolvido de graca.
     if len(shuffled) > 1 and shuffled == values:
         shuffled.reverse()
     return shuffled

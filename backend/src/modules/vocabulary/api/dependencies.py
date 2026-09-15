@@ -1,4 +1,4 @@
-"""Wiring da fatia vocabulary: liga portas a adaptadores concretos."""
+"""Wiring for the vocabulary slice: binds ports to concrete adapters."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ from shared.api.dependencies import SessionDep, SettingsDep
 
 
 def get_vocabulary_repository(session: SessionDep, user: CurrentUserDep) -> VocabularyRepository:
-    """Unico ponto que escolhe a implementacao da porta, ja no escopo do usuario."""
+    """Single point choosing the port implementation, scoped to current user."""
     return SqlAlchemyVocabularyRepository(session, user_id=user.id)
 
 
@@ -74,15 +74,14 @@ def get_delete_use_case(repository: RepositoryDep) -> DeleteVocabularyEntry:
 
 
 def get_sentence_generator(settings: SettingsDep) -> SentenceGenerator:
-    """Levanta SentenceGeneratorNotConfigured (503) se faltar a chave da API."""
+    """Raises SentenceGeneratorNotConfigured (503) if API key is missing."""
     return GeminiSentenceGenerator(create_chat_model(settings))
 
 
 def get_optional_sentence_generator(settings: SettingsDep) -> SentenceGenerator | None:
-    """Versao tolerante: devolve None em vez de 503 quando a IA nao esta ligada.
+    """Tolerant version: returns None instead of 503 when AI is not configured.
 
-    A sessao de estudo usa esta, para continuar funcionando com os cards que ja
-    estao no banco mesmo sem chave de IA configurada.
+    Study session uses this to keep functioning with existing cards in DB.
     """
     if not settings.is_ai_configured:
         return None
@@ -159,7 +158,7 @@ SaveSessionWordsDep = Annotated[SaveSessionWords, Depends(get_save_session_words
 
 
 def get_sentence_validator(request: Request) -> SentenceValidatorService:
-    """Recupera o singleton carregado no lifespan da aplicacao."""
+    """Retrieves singleton loaded in application lifespan."""
     return request.app.state.sentence_validator  # type: ignore[no-any-return]
 
 
@@ -167,7 +166,7 @@ SentenceValidatorDep = Annotated[SentenceValidatorService, Depends(get_sentence_
 
 
 def get_phrase_translator(settings: SettingsDep) -> PhraseTranslator:
-    """Levanta SentenceGeneratorNotConfigured (503) se faltar a chave da API."""
+    """Raises SentenceGeneratorNotConfigured (503) if API key is missing."""
     return GeminiPhraseTranslator(create_chat_model(settings))
 
 

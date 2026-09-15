@@ -1,4 +1,4 @@
-"""Fabrica da aplicacao FastAPI (composition root)."""
+"""FastAPI application factory (composition root)."""
 
 from __future__ import annotations
 
@@ -21,10 +21,10 @@ from shared.config import Settings, get_settings
 from shared.database import dispose_engine, get_session_factory
 from version import __version__
 
-# Importado pelo efeito colateral de registrar todos os models no metadata do SQLAlchemy.
+# Imported for side effect of registering all ORM models in SQLAlchemy metadata.
 import orm_registry  # noqa: F401,E402  isort:skip
 
-# ---------- seed data para chat ----------
+# ---------- seed data for chat ----------
 
 _CHAT_TOPICS: list[tuple[str, str, str]] = [
     ("At the Airport", "Practice vocabulary and phrases for airport situations", "A2"),
@@ -167,10 +167,10 @@ _CHAT_GOALS: list[tuple[str, str, str, list[str]]] = [
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    # Carrega o modelo spaCy uma unica vez. Falha ruidosamente se ausente.
+    # Load spaCy model once. Fails noisily if missing.
     _app.state.sentence_validator = SentenceValidatorService.load()
 
-    # Popula topicos e metas do chat se ainda nao existirem.
+    # Populate chat topics and goals if they do not exist yet.
     session_factory = get_session_factory()
     async with session_factory() as session:
         seed = SeedChatData(

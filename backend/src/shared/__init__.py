@@ -1,1 +1,1 @@
-"""Shared kernel: infraestrutura e contratos usados por todas as fatias verticais."""
+"""Shared kernel: infrastructure and contracts used by all vertical slices."""

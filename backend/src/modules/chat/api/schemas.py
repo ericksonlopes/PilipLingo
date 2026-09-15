@@ -1,4 +1,4 @@
-"""Schemas Pydantic da fatia chat: request/response HTTP."""
+"""Pydantic schemas for chat slice: HTTP request/response."""
 
 from __future__ import annotations
 
@@ -17,17 +17,17 @@ from modules.chat.domain.entities import (
     TurnFeedback,
 )
 
-# ---------- resposta de status ----------
+# ---------- status response ----------
 
 
 class ChatStatusResponse(BaseModel):
-    """Estado de disponibilidade do servico de IA."""
+    """Availability status of the AI service."""
 
     enabled: bool
     model: str | None
 
 
-# ---------- topicos e metas ----------
+# ---------- topics and goals ----------
 
 
 class ChatTopicResponse(BaseModel):
@@ -64,7 +64,7 @@ class ChatGoalResponse(BaseModel):
         )
 
 
-# ---------- conversas ----------
+# ---------- conversations ----------
 
 
 class CreateConversationRequest(BaseModel):
@@ -123,7 +123,7 @@ class ConversationListResponse(BaseModel):
         )
 
 
-# ---------- turnos ----------
+# ---------- turns ----------
 
 
 class FeedbackCorrectionResponse(BaseModel):

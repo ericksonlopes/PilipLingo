@@ -1,1 +1,1 @@
-"""Composicao da API: agrega os routers de todas as fatias verticais."""
+"""API composition: aggregates routers from all vertical slices."""

@@ -1,6 +1,6 @@
 /**
- * Hook central da página de chat.
- * Gerencia todo o estado: status da IA, conversa ativa, turnos, carregamento e erros.
+ * Main hook for the chat page.
+ * Manages state: AI status, active conversation, turns, loading, and errors.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -67,7 +67,6 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
     setLoadError(null);
 
     try {
-      // Carrega status da IA, topicos, metas e conversa ativa em paralelo.
       const [statusData, topicsData, goalsData, convPage] = await Promise.all([
         chatApi.status(ctrl.signal),
         chatApi.topics(ctrl.signal),
@@ -120,7 +119,6 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
     } else if (mode === "GOAL") {
       setScreen("goal-selector");
     }
-    // FREE vai direto via startFree()
   }, []);
 
   const startConversation = useCallback(
@@ -165,7 +163,6 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
       setError(null);
       setIsTyping(true);
 
-      // Adiciona a mensagem do usuario otimisticamente (sem ai_reply ainda)
       const optimistic: ConversationTurn = {
         id: `tmp-${Date.now()}`,
         conversation_id: conversation.id,
@@ -180,7 +177,6 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
       try {
         const result = await chatApi.sendTurn(conversation.id, text);
 
-        // Substitui o turno otimista pelo real
         setTurns((prev) => [
           ...prev.slice(0, -1),
           result.turn,
@@ -203,7 +199,6 @@ export function useChatPage(level: ProficiencyLevel): UseChatPageReturn {
           setScreen("completed");
         }
       } catch (err) {
-        // Remove o turno otimista em caso de erro
         setTurns((prev) => prev.slice(0, -1));
         setError(
           err instanceof Error ? err.message : "Erro ao enviar mensagem.",
