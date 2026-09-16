@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import Depends, Request
 
 from modules.users.api.dependencies import CurrentUserDep
+from modules.vocabulary.application.craft_phrase import CraftPhrase
 from modules.vocabulary.application.translate_phrase import TranslatePhrase
 from modules.vocabulary.application.use_cases import (
     BuildStudySession,
@@ -22,6 +23,7 @@ from modules.vocabulary.application.use_cases import (
     UpdateVocabularyEntry,
 )
 from modules.vocabulary.domain.ports import (
+    PhraseCrafter,
     PhraseTranslator,
     SentenceGenerator,
     StudyCardRepository,
@@ -30,6 +32,7 @@ from modules.vocabulary.domain.ports import (
 )
 from modules.vocabulary.infrastructure.chat_model import create_chat_model
 from modules.vocabulary.infrastructure.gemini_generator import GeminiSentenceGenerator
+from modules.vocabulary.infrastructure.gemini_phrase_crafter import GeminiPhraseCrafter
 from modules.vocabulary.infrastructure.gemini_phrase_translator import GeminiPhraseTranslator
 from modules.vocabulary.infrastructure.repository import (
     SqlAlchemyVocabularyRepository,
@@ -177,3 +180,17 @@ def get_translate_phrase_use_case(
 
 
 TranslatePhraseDep = Annotated[TranslatePhrase, Depends(get_translate_phrase_use_case)]
+
+
+def get_phrase_crafter(settings: SettingsDep) -> PhraseCrafter:
+    """Raises SentenceGeneratorNotConfigured (503) if API key is missing."""
+    return GeminiPhraseCrafter(create_chat_model(settings))
+
+
+def get_craft_phrase_use_case(
+    crafter: Annotated[PhraseCrafter, Depends(get_phrase_crafter)],
+) -> CraftPhrase:
+    return CraftPhrase(crafter)
+
+
+CraftPhraseDep = Annotated[CraftPhrase, Depends(get_craft_phrase_use_case)]

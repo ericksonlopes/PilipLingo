@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from modules.vocabulary.application.dto import (
     GeneratedSentences,
+    PhraseCraftResultDto,
     SeenWordItem,
     StudyHistoryPage,
     TranslationResult,
@@ -447,4 +448,74 @@ class TranslateResponse(BaseModel):
                 for c in result.chunks
             ],
             assembly_summary=result.assembly_summary,
+        )
+
+
+# ---------- phrase crafting ----------
+
+
+class PhraseCraftRequest(BaseModel):
+    """Payload for phrase crafting endpoint."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    text: str = Field(
+        min_length=1,
+        max_length=1000,
+        description="Phrase, intention, or idea to formulate into natural English.",
+        examples=["eu quero pizza"],
+    )
+
+
+class PhraseVariationResponse(BaseModel):
+    """A natural way to express the user's intent in English."""
+
+    english_phrase: str
+    portuguese_translation: str
+    context: str
+    formality: str
+    explanation: str
+
+
+class SentencePatternResponse(BaseModel):
+    """A reusable grammatical pattern for constructing similar sentences."""
+
+    pattern: str
+    explanation: str
+    examples: list[str]
+
+
+class PhraseCraftResponse(BaseModel):
+    """Result of phrase crafting assistance with variations, patterns, and cultural tips."""
+
+    original: str
+    intent_summary: str
+    cultural_tip: str
+    variations: list[PhraseVariationResponse]
+    patterns: list[SentencePatternResponse]
+
+    @classmethod
+    def from_result(cls, result: PhraseCraftResultDto) -> PhraseCraftResponse:
+        return cls(
+            original=result.original,
+            intent_summary=result.intent_summary,
+            cultural_tip=result.cultural_tip,
+            variations=[
+                PhraseVariationResponse(
+                    english_phrase=v.english_phrase,
+                    portuguese_translation=v.portuguese_translation,
+                    context=v.context,
+                    formality=v.formality,
+                    explanation=v.explanation,
+                )
+                for v in result.variations
+            ],
+            patterns=[
+                SentencePatternResponse(
+                    pattern=p.pattern,
+                    explanation=p.explanation,
+                    examples=p.examples,
+                )
+                for p in result.patterns
+            ],
         )

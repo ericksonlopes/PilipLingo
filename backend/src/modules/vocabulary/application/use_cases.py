@@ -168,7 +168,7 @@ class GenerateSentences:
         # Prioritize terms matching user level; fallback to all vocabulary if none match.
         same_level = [entry.term for entry in entries if entry.level == level]
         candidates = same_level or [entry.term for entry in entries]
-        return random.sample(candidates, k=min(limit, len(candidates)))
+        return random.sample(candidates, k=min(limit, len(candidates)))\
 
 
 class BuildStudySession:
@@ -295,7 +295,10 @@ class BuildStudySession:
             sentences = await self._generator.generate(request)
             logger.info("[top_up] Gemini returned %d sentences", len(sentences))
         except UnavailableError as cause:
-            logger.warning("[top_up] generation failed, proceeding without new cards: %s", cause.message)
+            logger.warning(
+                "[top_up] generation failed, proceeding without new cards: %s",
+                cause.message,
+            )
             return []
 
         known = await self._cards.existing_sentences(level=query.level)

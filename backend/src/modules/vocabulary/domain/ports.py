@@ -49,6 +49,34 @@ class PhraseTranslationResult:
     assembly_summary: str
 
 
+@dataclass(frozen=True, slots=True)
+class PhraseVariation:
+    """A natural way to express the user's intent in English."""
+    english_phrase: str
+    portuguese_translation: str
+    context: str
+    formality: str
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
+class SentencePattern:
+    """A reusable grammatical structure/formula for building similar phrases."""
+    pattern: str
+    explanation: str
+    examples: list[str]
+
+
+@dataclass(frozen=True, slots=True)
+class PhraseCraftResult:
+    """Result of phrase crafting assistance."""
+    original: str
+    intent_summary: str
+    cultural_tip: str
+    variations: list[PhraseVariation]
+    patterns: list[SentencePattern]
+
+
 class VocabularyRepository(ABC):
     """Persistence port for vocabulary items."""
 
@@ -112,6 +140,14 @@ class PhraseTranslator(ABC):
     @abstractmethod
     async def translate(self, text: str) -> PhraseTranslationResult:
         """Translates phrase and returns grammatical blocks with explanations."""
+
+
+class PhraseCrafter(ABC):
+    """Port for phrase construction options, sentence patterns, and pragmatic tips."""
+
+    @abstractmethod
+    async def craft(self, text: str) -> PhraseCraftResult:
+        """Analyzes intent and returns variations, patterns, and pragmatic tips."""
 
 
 class StudyCardRepository(ABC):

@@ -334,3 +334,31 @@ export interface TranslationResult {
 export interface TranslateInput {
   text: string;
 }
+
+// ---------- phrase crafting ----------
+
+export interface PhraseVariation {
+  english_phrase: string;
+  portuguese_translation: string;
+  context: string;
+  formality: string;
+  explanation: string;
+}
+
+export interface SentencePattern {
+  pattern: string;
+  explanation: string;
+  examples: string[];
+}
+
+export interface PhraseCraftResult {
+  original: string;
+  intent_summary: string;
+  cultural_tip: string;
+  variations: PhraseVariation[];
+  patterns: SentencePattern[];
+}
+
+export interface PhraseCraftInput {
+  text: string;
+}

@@ -165,3 +165,39 @@ class TranslationResult:
     corrections: list[TranslationCorrectionItem]
     chunks: list[TranslationChunkItem]
     assembly_summary: str
+
+
+# ---------- construcao de frases (phrase crafting) ----------
+
+@dataclass(frozen=True, slots=True)
+class PhraseVariationItem:
+    """Uma variacao natural de expressar a ideia em ingles."""
+    english_phrase: str
+    portuguese_translation: str
+    context: str
+    formality: str
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
+class SentencePatternItem:
+    """Estrutura/formula reutilizavel para montar frases semelhantes."""
+    pattern: str
+    explanation: str
+    examples: list[str]
+
+
+@dataclass(frozen=True, slots=True)
+class PhraseCraftCommand:
+    """Comando com o texto ou intencao a ser explorado em ingles."""
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class PhraseCraftResultDto:
+    """Resultado com variacoes, padroes estruturais e orientacoes pragmaticas."""
+    original: str
+    intent_summary: str
+    cultural_tip: str
+    variations: list[PhraseVariationItem]
+    patterns: list[SentencePatternItem]

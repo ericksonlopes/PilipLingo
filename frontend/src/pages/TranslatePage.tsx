@@ -1,75 +1,111 @@
 /**
- * Página /traduzir — Tradução Avançada com dois modos:
- *  - "Traduzir": campo único, resultado completo abaixo
- *  - "Chat":     interface conversacional, cada mensagem gera um turno
+ * Página /traduzir — Tradução Avançada com três modos:
+ *  - "Traduzir": campo único, resultado completo com blocos gramaticais
+ *  - "Construir Frases": assistência de IA para formular frases naturais, padrões e dicas pragmáticas
+ *  - "Chat": interface conversacional, cada mensagem gera um turno
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import TranslationBreakdown from "../components/translation/TranslationBreakdown";
+import PhraseCraftView from "../features/translation/components/PhraseCraftView";
 import TranslateChatView from "../features/translation/components/TranslateChatView";
+import { usePhraseCraft } from "../features/translation/usePhraseCraft";
 import { useTranslateChat } from "../features/translation/useTranslateChat";
 import { ApiError, translationApi } from "../lib/api";
 import type { TranslationResult } from "../lib/types";
 
-type TabId = "single" | "chat";
+type TabId = "single" | "craft" | "chat";
 
 const MAX_CHARS = 1000;
 
 export default function TranslatePage() {
   const [tab, setTab] = useState<TabId>("single");
 
-  return (
-    <div className="page translate-page translate-page--chat">
-      <div className="translate-page__head">
-        <h1 className="translate-page__title">Tradução avançada</h1>
-        <p className="translate-page__subtitle">
-          Inglês ↔ Português com análise de blocos gramaticais.
-        </p>
-      </div>
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [tab]);
 
-      {/* Seletor de modo */}
-      <div className="translate-tabs" role="tablist" aria-label="Modo de tradução">
-        <button
-          role="tab"
-          type="button"
-          aria-selected={tab === "single"}
-          className={`translate-tab${tab === "single" ? " translate-tab--active" : ""}`}
-          onClick={() => setTab("single")}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M3 5h12M9 3v2M7 19l4-8 4 8M8.5 16h5M14 5l7 7-2 2M17 12l-3 3"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
-          Traduzir
-        </button>
-        <button
-          role="tab"
-          type="button"
-          aria-selected={tab === "chat"}
-          className={`translate-tab${tab === "chat" ? " translate-tab--active" : ""}`}
-          onClick={() => setTab("chat")}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
-          Chat
-        </button>
+  return (
+    <div className={`page translate-page${tab === "chat" ? " translate-page--chat" : ""}`}>
+      {/* Cabeçalho e seletor de modo fixos no topo */}
+      <div className="translate-page__sticky-top">
+        <div className="translate-page__head">
+          <h1 className="translate-page__title">Tradução e Construção</h1>
+          <p className="translate-page__subtitle">
+            {tab === "craft"
+              ? "Descubra como nativos expressam sua ideia em diferentes contextos."
+              : tab === "chat"
+              ? "Conversação guiada e tradução contextual contínua."
+              : "Inglês ↔ Português com análise de blocos gramaticais."}
+          </p>
+        </div>
+
+        {/* Seletor de modo */}
+        <div className="translate-tabs" role="tablist" aria-label="Modo de tradução">
+          <button
+            role="tab"
+            type="button"
+            aria-selected={tab === "single"}
+            className={`translate-tab${tab === "single" ? " translate-tab--active" : ""}`}
+            onClick={() => setTab("single")}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M3 5h12M9 3v2M7 19l4-8 4 8M8.5 16h5M14 5l7 7-2 2M17 12l-3 3"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+            Traduzir
+          </button>
+
+          <button
+            role="tab"
+            type="button"
+            aria-selected={tab === "craft"}
+            className={`translate-tab${tab === "craft" ? " translate-tab--active" : ""}`}
+            onClick={() => setTab("craft")}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M12 2l2.4 7.2h7.6l-6.2 4.5 2.4 7.3-6.2-4.5-6.2 4.5 2.4-7.3-6.2-4.5h7.6z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+            Construir Frases
+          </button>
+
+          <button
+            role="tab"
+            type="button"
+            aria-selected={tab === "chat"}
+            className={`translate-tab${tab === "chat" ? " translate-tab--active" : ""}`}
+            onClick={() => setTab("chat")}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+            Chat
+          </button>
+        </div>
       </div>
 
       {tab === "single" && <SingleMode />}
+      {tab === "craft"  && <CraftMode />}
       {tab === "chat"   && <ChatMode />}
     </div>
   );
@@ -206,6 +242,14 @@ function SingleMode() {
       )}
     </div>
   );
+}
+
+/* ────────────────────────────────────────────────────────────
+   Modo Construir Frases — exploração contextual e padrões
+──────────────────────────────────────────────────────────── */
+function CraftMode() {
+  const craft = usePhraseCraft();
+  return <PhraseCraftView {...craft} />;
 }
 
 /* ────────────────────────────────────────────────────────────

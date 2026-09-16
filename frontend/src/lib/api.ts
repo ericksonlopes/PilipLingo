@@ -15,6 +15,8 @@ import type {
   ExerciseMode,
   GeneratedSentencesResult,
   GenerateSentencesInput,
+  PhraseCraftInput,
+  PhraseCraftResult,
   ProficiencyLevel,
   ReviewGrade,
   ReviewResult,
@@ -360,6 +362,15 @@ export const translationApi = {
   /** Translates phrase and returns structural block analysis. */
   translate(input: TranslateInput, signal?: AbortSignal) {
     return request<TranslationResult>("/vocabulary/translate", {
+      method: "POST",
+      body: JSON.stringify(input),
+      signal,
+    });
+  },
+
+  /** Crafts natural English formulations, sentence patterns, and cultural tips. */
+  craftPhrase(input: PhraseCraftInput, signal?: AbortSignal) {
+    return request<PhraseCraftResult>("/vocabulary/phrase-craft", {
       method: "POST",
       body: JSON.stringify(input),
       signal,

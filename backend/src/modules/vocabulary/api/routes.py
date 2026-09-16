@@ -16,6 +16,7 @@ from fastapi import APIRouter, Query, Response, status
 from modules.users.api.dependencies import CurrentUserDep
 from modules.vocabulary.api.dependencies import (
     BuildStudySessionDep,
+    CraftPhraseDep,
     CreateUseCaseDep,
     DeleteUseCaseDep,
     GenerateSentencesDep,
@@ -34,6 +35,8 @@ from modules.vocabulary.api.schemas import (
     GenerateSentencesRequest,
     GenerateSentencesResponse,
     LevelOption,
+    PhraseCraftRequest,
+    PhraseCraftResponse,
     ReviewStudyCardRequest,
     ReviewStudyCardResponse,
     SaveSessionWordsRequest,
@@ -58,6 +61,7 @@ from modules.vocabulary.application.dto import (
     CreateVocabularyEntryCommand,
     GenerateSentencesCommand,
     ListVocabularyQuery,
+    PhraseCraftCommand,
     ResetStudySessionCommand,
     ReviewStudyCardCommand,
     SaveSessionWordsCommand,
@@ -310,6 +314,23 @@ async def translate_phrase(
 ) -> TranslateResponse:
     result = await use_case.execute(TranslationCommand(text=payload.text))
     return TranslateResponse.from_result(result)
+
+
+@router.post(
+    "/phrase-craft",
+    response_model=PhraseCraftResponse,
+    summary="Craft natural English phrases from user intent with patterns and tips",
+    responses={
+        503: {"description": "AI service not configured or unavailable"},
+    },
+)
+async def craft_phrase(
+    payload: PhraseCraftRequest,
+    use_case: CraftPhraseDep,
+    _user: CurrentUserDep,
+) -> PhraseCraftResponse:
+    result = await use_case.execute(PhraseCraftCommand(text=payload.text))
+    return PhraseCraftResponse.from_result(result)
 
 
 @router.get(
