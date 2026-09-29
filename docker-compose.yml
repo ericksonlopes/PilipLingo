@@ -16,6 +16,9 @@ services:
       # Sem ela a API responde 503 em /vocabulary/sentences/generate e o app esconde a feature.
       PILIPLINGO_GOOGLE_API_KEY: ${PILIPLINGO_GOOGLE_API_KEY:-}
       PILIPLINGO_GEMINI_MODEL: ${PILIPLINGO_GEMINI_MODEL:-gemini-3.5-flash}
+      # Configuração para provedor local Ollama
+      PILIPLINGO_LLM_PROVIDER: ${PILIPLINGO_LLM_PROVIDER:-gemini}
+      PILIPLINGO_OLLAMA_BASE_URL: http://ollama:11434
     volumes:
       # Codigo montado para reload; .venv e data ficam isolados do host.
       - ./backend/src:/app/src
@@ -82,6 +85,31 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: piliplingo-ollama
+    ports:
+      - "11434:11434"
+    environment:
+      # Mantém o modelo travado na VRAM para sempre (sem tempo de "cold start")
+      - OLLAMA_KEEP_ALIVE=-1
+      # Ativa Flash Attention (acelera brutalmente o processamento do prompt)
+      - OLLAMA_FLASH_ATTENTION=1
+      # Permite processar requisições simultâneas multiplicando o cache KV (consome mais VRAM)
+      - OLLAMA_NUM_PARALLEL=4
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    # Configuração para o Ollama usar a GPU Nvidia no Docker:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 volumes:
   backend-data:
   frontend-node-modules:
+  ollama-data:

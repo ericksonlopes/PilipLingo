@@ -42,6 +42,9 @@ class Settings(BaseSettings):
 
     # NoDecode disables automatic json.loads of pydantic-settings for this field,
     # which happens BEFORE validators. Without this, `a,b` would break initialization.
+    # ----- LLM Provider -----
+    llm_provider: Literal["gemini", "ollama"] = "gemini"
+
     # ----- Sentence Generation with Gemini (LangChain) -----
     # SecretStr prevents the key from appearing in repr/logs.
     google_api_key: SecretStr | None = None
@@ -50,8 +53,14 @@ class Settings(BaseSettings):
     gemini_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     gemini_timeout_seconds: float = Field(default=25.0, gt=0)
     gemini_max_retries: int = Field(default=2, ge=0, le=5)
-    # Maximum sentences per request: generation costs money per call.
-    sentences_max_per_request: int = Field(default=5, ge=1, le=10)
+    # Reduzido de 5 para 2. Como LLMs locais geram palavra por palavra, pedir menos frases 
+    # de cada vez corta o tempo de espera do usuário pela metade.
+    sentences_max_per_request: int = Field(default=2, ge=1, le=10)
+
+    # ----- Sentence Generation with Ollama (LangChain) -----
+    # Versão de 4-bits (q4_0) para garantir a velocidade máxima (limitada apenas pela banda de memória da GPU)
+    ollama_model: str = "qwen2.5:7b"
+    ollama_base_url: str = "http://localhost:11434"
 
     # ----- AI Chat (Gemini) -----
     # GEMINI_API_KEY is the same google_api_key above; we reuse the same key.
@@ -89,7 +98,9 @@ class Settings(BaseSettings):
 
     @property
     def is_ai_configured(self) -> bool:
-        """True when key to call Gemini is set."""
+        """True when key to call Gemini is set, or if using local Ollama."""
+        if self.llm_provider == "ollama":
+            return True
         return self.google_api_key is not None and bool(self.google_api_key.get_secret_value())
 
     @property

@@ -1,21 +1,22 @@
-"""Construction of Gemini chat model from Settings."""
+"""Construction of the chat model from Settings."""
 
 from __future__ import annotations
 
 from functools import lru_cache
 
 from langchain_core.language_models import BaseChatModel
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 from modules.vocabulary.domain.errors import SentenceGeneratorNotConfigured
 from shared.config import Settings
 
 
 @lru_cache(maxsize=4)
-def _build(
+def _build_gemini(
     model: str, api_key: str, temperature: float, timeout: float, retries: int
 ) -> BaseChatModel:
     """Cached by configuration: client reuses connections across requests."""
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=api_key,
@@ -24,14 +25,34 @@ def _build(
         max_retries=retries,
     )
 
+@lru_cache(maxsize=4)
+def _build_ollama(model: str, base_url: str, temperature: float) -> BaseChatModel:
+    from langchain_ollama import ChatOllama
+    
+    return ChatOllama(
+        model=model,
+        base_url=base_url,
+        temperature=temperature,
+        format="json", # helps with structured outputs in some small models
+        # Aumentamos o contexto máximo para 8192 tokens (consome mais VRAM, mas evita cortes no JSON)
+        num_ctx=8192,
+    )
+
 
 def create_chat_model(settings: Settings) -> BaseChatModel:
     """Fails explicitly (503) when API key is not configured."""
     if not settings.is_ai_configured:
         raise SentenceGeneratorNotConfigured
-    assert settings.google_api_key is not None
+    
+    if settings.llm_provider == "ollama":
+        return _build_ollama(
+            settings.ollama_model,
+            settings.ollama_base_url,
+            settings.gemini_temperature,
+        )
 
-    return _build(
+    assert settings.google_api_key is not None
+    return _build_gemini(
         settings.gemini_model,
         settings.google_api_key.get_secret_value(),
         settings.gemini_temperature,
